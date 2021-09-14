@@ -4,17 +4,19 @@ using namespace std;
 
 class ListNode {
 public:
-    int       val;
+    int val;
     ListNode *next;
 
-    ListNode() {}
-    ListNode(int val) : val(val), next(nullptr) {}
+    ListNode() = default;
+
+    explicit ListNode(int val) : val(val), next(nullptr) {}
+
     ListNode(int x, ListNode *next) : val(x), next(next) {}
 };
 
 class TrieNode {
 public:
-    bool      isWord;
+    bool isWord;
     TrieNode *children[];
 };
 
@@ -25,23 +27,21 @@ public:
 
 class TreeNode {
 public:
-    int       val;
+    int val;
     TreeNode *left;
     TreeNode *right;
-    TreeNode(int val) : val(val) {}
+
+    explicit TreeNode(int val) : val(val), left(nullptr), right(nullptr) {}
 };
 
 class Node {
 public:
-    int            val;
-    vector<Node *> children;
+    int val;
+    Node children[];
 
-    Node() {}
+    Node() = default;
 
-    Node(int _val) { val = _val; }
+    explicit Node(int _val) : val(_val), children(nullptr) {}
 
-    Node(int _val, vector<Node *> _children) {
-        val      = _val;
-        children = _children;
-    }
+    Node(int _val, Node &_children[]) : val(_val), children(_children) {}
 };
