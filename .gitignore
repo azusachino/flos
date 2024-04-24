@@ -1,6 +1,2 @@
-.idea/
-build/
-.vs/
-.vscode/
-cmake-build-debug/
-out/
+
+node_modules/
