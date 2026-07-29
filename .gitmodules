@@ -1,0 +1,10 @@
+[submodule "vendor/apache-flink"]
+	path = vendor/apache-flink
+	url = https://github.com/apache/flink.git
+	shallow = true
+	ignore = all
+[submodule "vendor/flink-kubernetes-operator"]
+	path = vendor/flink-kubernetes-operator
+	url = https://github.com/apache/flink-kubernetes-operator.git
+	shallow = true
+	ignore = all
