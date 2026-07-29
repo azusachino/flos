@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make *)",
+      "Bash(mise *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git status *)"
+    ],
+    "deny": ["Bash(rm -rf *)"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bunx block-no-verify"
+          }
+        ],
+        "description": "Block --no-verify flags to protect repository hooks"
+      }
+    ]
+  }
+}

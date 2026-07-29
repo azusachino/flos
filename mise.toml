@@ -1,0 +1,9 @@
+[tools]
+bun = "latest"
+java = "corretto-17"
+maven = "3.9.12"
+python = "3.12"
+uv = "latest"
+
+[settings]
+lockfile = true
