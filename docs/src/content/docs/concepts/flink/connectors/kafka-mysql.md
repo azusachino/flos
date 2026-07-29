@@ -15,8 +15,7 @@ source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/connector
 
 # Kafka Source and MySQL Sink
 
-Real Flink jobs sit between systems. The `pipeline-lab` keeps the operator
-semantics from the bounded tutorial and replaces its in-memory edges:
+Real Flink jobs sit between systems. The `pipeline-lab` keeps the operator semantics from the bounded tutorial and replaces its in-memory edges:
 
 ```text
 Kafka purchase-events
@@ -29,26 +28,20 @@ Kafka purchase-events
   -> MySQL customer_spend
 ```
 
-The Kafka source starts at the earliest available offset for the tutorial
-consumer group. The MySQL sink batches idempotent upserts keyed by customer ID.
-Checkpointing is enabled, but this first sink uses at-least-once delivery.
-Idempotent writes make retries safe for the accumulated result.
+The Kafka source starts at the earliest available offset for the tutorial consumer group. The MySQL sink batches idempotent upserts keyed by customer ID. Checkpointing is enabled, but this first sink uses at-least-once delivery. Idempotent writes make retries safe for the accumulated result.
 
 ## Supporting libraries
 
-- Spring Framework's environment abstraction maps runtime configuration without
-  coupling the Flink job lifecycle to Spring Boot.
+- Spring Framework's environment abstraction maps runtime configuration without coupling the Flink job lifecycle to Spring Boot.
 - Jackson turns Kafka JSON into the shared `PurchaseEvent` record.
 - Lombok removes boilerplate from the immutable configuration value.
 - MySQL Connector/J supplies the JDBC driver.
 
-These utilities stay at the integration boundary. The operators remain plain
-Flink functions so their tests do not need a Spring context, Kafka, or MySQL.
+These utilities stay at the integration boundary. The operators remain plain Flink functions so their tests do not need a Spring context, Kafka, or MySQL.
 
 ## Configuration
 
-The defaults target service names in `environments/flink/compose.yaml`. Override
-them through:
+The defaults target service names in `environments/flink/compose.yaml`. Override them through:
 
 - `FLOS_KAFKA_BOOTSTRAP`
 - `FLOS_KAFKA_TOPIC`
@@ -63,6 +56,4 @@ Package both executable labs and start the environment:
 make flink-up
 ```
 
-The bounded `make flink-smoke` remains the fast runtime acceptance test. The
-Kafka-to-MySQL job is intentionally unbounded and is the next hands-on pipeline
-exercise.
+The bounded `make flink-smoke` remains the fast runtime acceptance test. The Kafka-to-MySQL job is intentionally unbounded and is the next hands-on pipeline exercise.

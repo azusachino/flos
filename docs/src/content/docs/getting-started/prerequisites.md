@@ -21,8 +21,7 @@ make setup
 make check
 ```
 
-To browse the upstream implementations at the versions used by the tutorial,
-initialize the shallow source references:
+To browse the upstream implementations at the versions used by the tutorial, initialize the shallow source references:
 
 ```sh
 git submodule update --init --depth 1

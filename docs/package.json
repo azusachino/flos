@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "astro dev --host",
     "build": "astro check && astro build",
     "check": "astro check",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format": "prettier --prose-wrap never --write .",
+    "format:check": "prettier --prose-wrap never --check ."
   },
   "dependencies": {
     "@astrojs/check": "0.9.10",
