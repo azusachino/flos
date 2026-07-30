@@ -80,6 +80,24 @@ Neither answer is "more correct." `OnCreateAndWrite` is right when only genuine 
 
 The activities in this lab carry a `delayBeforeMillis`, applied inside `CartTotalFunction.processElement` immediately before the state is touched — not inside the source before an event is emitted. A `keyBy` sits between the two, and that shuffle can buffer and batch records; a source that sleeps between `collect()` calls does not reliably reproduce the same wall-clock gap at the point TTL is actually evaluated downstream. Sleeping exactly where the TTL check happens removes that uncertainty entirely. This is the same lesson as the [Netty backpressure lab](/concepts/netty/backpressure/) from a different angle: proving a real-time property requires controlling time at the place the property is actually checked, not somewhere upstream of it.
 
+## Two corners worth checking explicitly
+
+`probeOnAnUnknownCustomerNeverCreatesState` probes a customer who has never purchased anything, immediately followed by a real purchase. If a probe ever accidentally called `update()` — a plausible bug, since `processElement` always reads `cartState.value()` first regardless of activity type — the purchase would find that phantom entry and treat itself as a continuation. It doesn't: the purchase still reports `startedNewOrExpiredCart = true`, confirming a probe is genuinely read-only, not just "usually harmless."
+
+`keyedStateIsIsolatedAcrossCustomers` interleaves two customers around the same TTL boundary, deliberately so that alice's own clock and bob's own clock would disagree if they were ever mixed up:
+
+```mermaid
+sequenceDiagram
+    participant A as alice writes (t=0)
+    participant B as bob writes (t=100ms)
+    participant A2 as alice writes (t=350ms)
+    participant B2 as bob probes (t=350ms)
+    Note over A,A2: 350ms since alice's own write > 300ms TTL -> expired
+    Note over B,B2: 250ms since bob's own write < 300ms TTL -> still alive
+```
+
+Alice's cart correctly expires from her own 350ms gap despite bob's write landing in between; bob's cart correctly survives from his own 250ms gap despite alice's expiry happening around it. Flink's keyed state is scoped per key by construction, so this isn't proving Flink works — it's a regression guard against this specific job accidentally sharing a clock or a descriptor across keys.
+
 ## Visibility: what a stale value looks like before cleanup
 
 ```java
@@ -88,6 +106,23 @@ The activities in this lab carry a `delayBeforeMillis`, applied inside `CartTota
 ```
 
 This lab always configures `neverReturnExpired()`, because it wants `value()` to answer "is this cart still alive?" truthfully at read time. `returnExpiredIfNotCleanedUp()` exists for the opposite case: when a slightly stale read is an acceptable trade for avoiding the cost of checking expiry on every single access — the value can still be logically expired, just not yet removed from the backend's storage.
+
+### The gotcha: this changes program behavior, not just an internal detail
+
+`returnExpiredIfNotCleanedUpKeepsStaleValueVisibleToTheApplication` swaps only the visibility setting in the otherwise-identical expiry test, and the result is wrong from the application's point of view:
+
+```java
+var ttlConfig =
+        StateTtlConfig.newBuilder(Duration.ofMillis(150))
+                .updateTtlOnCreateAndWrite()
+                .returnExpiredIfNotCleanedUp()
+                .build();
+// same 400ms gap, same 150ms TTL as stateExpiresAfterTtlUnderNeverReturnExpired
+```
+
+`CartTotalFunction` only ever asks one question — `current == null`? — to decide whether to start a new cart. Under `NeverReturnExpired`, that question correctly means "is this cart alive?" Under `ReturnExpiredIfNotCleanedUp`, `current` is non-null even though the TTL has already elapsed, so the function wrongly continues accumulating onto a cart it should have reset: the second purchase becomes `total=15.00, count=2` instead of a fresh `total=5.00, count=1`.
+
+There is no fix available at the `ValueState<T>` call site — the public API returns only the user value, never the wrapping `TtlValue`'s timestamp, so a caller has no way to distinguish "genuinely alive" from "expired but not yet swept" once it has opted into seeing expired values. Choosing `returnExpiredIfNotCleanedUp()` is a deliberate trade a caller makes only when the application logic does not depend on knowing which case it is in.
 
 ## The same logic behind two backends
 
@@ -117,9 +152,12 @@ The test proves the two backends are _logically_ interchangeable for this job �
 | `stateExpiresAfterTtlUnderNeverReturnExpired` | A cart genuinely expires after real elapsed time exceeds the configured TTL |
 | `probeDoesNotExtendTtlUnderOnCreateAndWrite` | Reads do not reset the TTL clock under `OnCreateAndWrite` |
 | `probeExtendsTtlUnderOnReadAndWrite` | The identical schedule survives instead, under `OnReadAndWrite` |
+| `probeOnAnUnknownCustomerNeverCreatesState` | A read-only probe never writes, even against state that never existed |
+| `keyedStateIsIsolatedAcrossCustomers` | Two keys' TTL clocks never interfere, even interleaved around the same boundary |
+| `returnExpiredIfNotCleanedUpKeepsStaleValueVisibleToTheApplication` | `ReturnExpiredIfNotCleanedUp` genuinely changes output, not just storage timing |
 | `hashMapAndRocksDbBackendsProduceIdenticalOutput` | The job's output is backend-agnostic |
 
-All five tests use real `Thread.sleep` rather than a virtual clock: Flink's default `TtlTimeProvider` is `System::currentTimeMillis`, with no public hook to mock it, so a short bounded real wait is the honest way to prove this boundary — the same trade-off this project already made for [Netty's connection lifecycle lab](/concepts/netty/connection-lifecycle/).
+All eight tests use real `Thread.sleep` rather than a virtual clock: Flink's default `TtlTimeProvider` is `System::currentTimeMillis`, with no public hook to mock it, so a short bounded real wait is the honest way to prove this boundary — the same trade-off this project already made for [Netty's connection lifecycle lab](/concepts/netty/connection-lifecycle/).
 
 ## Run the lab
 
@@ -138,8 +176,8 @@ CartSnapshot[customerId=alice, total=5.00, count=1, startedNewOrExpiredCart=true
 ## Exercises
 
 1. Change the lab's TTL from 300ms to 600ms and predict whether the final purchase still starts a new cart.
-2. Add a second customer, `"bob"`, interleaved with Alice's activities, and confirm `keyBy` keeps their TTL clocks independent.
-3. Switch `neverReturnExpired()` to `returnExpiredIfNotCleanedUp()` in the expiry test and predict what `cartState.value()` returns immediately after the TTL has passed but before any cleanup has run.
+2. `returnExpiredIfNotCleanedUpKeepsStaleValueVisibleToTheApplication` proves the bug exists. Fix `CartTotalFunction` so it behaves correctly under either visibility setting — you cannot ask `ValueState<T>` for the entry's timestamp, so the fix has to live in what the application itself stores.
+3. `keyedStateIsIsolatedAcrossCustomers` uses two keys. Extend it to three, with each customer's expiry boundary landing at a different point in the schedule, and confirm all three are still judged independently.
 4. `CartTotalFunction` never configures any TTL cleanup strategy (incremental cleanup, RocksDB compaction filter). Look up `StateTtlConfig.Builder.cleanupIncrementally` and explain what silently keeps expired-but-unread entries occupying memory or disk without it.
 
 ## What's next

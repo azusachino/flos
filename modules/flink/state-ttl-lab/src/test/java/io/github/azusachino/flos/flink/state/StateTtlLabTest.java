@@ -101,6 +101,83 @@ class StateTtlLabTest {
     }
 
     @Test
+    void probeOnAnUnknownCustomerNeverCreatesState() throws Exception {
+        var ttlConfig =
+                StateTtlConfig.newBuilder(Duration.ofSeconds(5))
+                        .updateTtlOnCreateAndWrite()
+                        .neverReturnExpired()
+                        .build();
+        var activities =
+                List.of(
+                        CartActivity.probe("charlie", 0), CartActivity.purchase("charlie", "7.00", 0));
+
+        var results = run(activities, ttlConfig);
+
+        // The probe finds nothing and, critically, calls value() only -- never update() -- so it
+        // must leave no trace. The purchase right after still starts a brand new cart rather than
+        // continuing from some phantom state the probe might have created.
+        assertThat(results)
+                .containsExactly(
+                        new CartSnapshot("charlie", BigDecimal.ZERO, 0, true),
+                        new CartSnapshot("charlie", new BigDecimal("7.00"), 1, true));
+    }
+
+    @Test
+    void keyedStateIsIsolatedAcrossCustomers() throws Exception {
+        var ttlConfig =
+                StateTtlConfig.newBuilder(Duration.ofMillis(300))
+                        .updateTtlOnCreateAndWrite()
+                        .neverReturnExpired()
+                        .build();
+        var activities =
+                List.of(
+                        CartActivity.purchase("alice", "10.00", 0),
+                        CartActivity.purchase("bob", "20.00", 100),
+                        // 350ms after alice's write, but only 250ms after bob's.
+                        CartActivity.purchase("alice", "3.00", 250),
+                        CartActivity.probe("bob", 0));
+
+        var results = run(activities, ttlConfig);
+
+        // Alice's own 300ms TTL has elapsed (350ms since her write) despite bob's unrelated write
+        // in between -- his activity does not refresh her clock. Bob's own state is still well
+        // within his 300ms TTL (250ms since his write) despite alice's write and expiry around it.
+        assertThat(results)
+                .containsExactly(
+                        new CartSnapshot("alice", new BigDecimal("10.00"), 1, true),
+                        new CartSnapshot("bob", new BigDecimal("20.00"), 1, true),
+                        new CartSnapshot("alice", new BigDecimal("3.00"), 1, true),
+                        new CartSnapshot("bob", new BigDecimal("20.00"), 1, false));
+    }
+
+    @Test
+    void returnExpiredIfNotCleanedUpKeepsStaleValueVisibleToTheApplication() throws Exception {
+        var ttlConfig =
+                StateTtlConfig.newBuilder(Duration.ofMillis(150))
+                        .updateTtlOnCreateAndWrite()
+                        .returnExpiredIfNotCleanedUp()
+                        .build();
+        var activities =
+                List.of(
+                        CartActivity.purchase("alice", "10.00", 0),
+                        CartActivity.purchase("alice", "5.00", 400));
+
+        var results = run(activities, ttlConfig);
+
+        // The 150ms TTL has elapsed by the second purchase (400ms later), exactly as in
+        // stateExpiresAfterTtlUnderNeverReturnExpired. But value() keeps returning the stale
+        // CartTotal instead of null until physical cleanup runs, and CartTotalFunction has no
+        // other way to tell the two cases apart: it only ever asks "is current null?" So this
+        // purchase is wrongly treated as a continuation, accumulating onto a cart that should
+        // have reset. ValueState<T>'s public API exposes no expiry flag alongside the value --
+        // ReturnExpiredIfNotCleanedUp is a trade a caller makes deliberately, not a free one.
+        assertThat(results)
+                .containsExactly(
+                        new CartSnapshot("alice", new BigDecimal("10.00"), 1, true),
+                        new CartSnapshot("alice", new BigDecimal("15.00"), 2, false));
+    }
+
+    @Test
     void hashMapAndRocksDbBackendsProduceIdenticalOutput() throws Exception {
         var ttlConfig =
                 StateTtlConfig.newBuilder(Duration.ofMillis(150))
