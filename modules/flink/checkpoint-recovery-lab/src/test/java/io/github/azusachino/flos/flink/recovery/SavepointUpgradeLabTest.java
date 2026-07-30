@@ -6,7 +6,10 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.core.execution.SavepointFormatType;
 import org.junit.jupiter.api.Test;
 
@@ -23,13 +26,7 @@ final class SavepointUpgradeLabTest {
 
         assertThat(SavepointOrderSource.awaitPause(10, TimeUnit.SECONDS)).isTrue();
 
-        String savepointPath =
-                revisionAClient
-                        .stopWithSavepoint(
-                                false,
-                                savepointDirectory.toUri().toString(),
-                                SavepointFormatType.CANONICAL)
-                        .get(20, TimeUnit.SECONDS);
+        String savepointPath = triggerSavepointWithRetry(revisionAClient, savepointDirectory);
 
         assertThat(Path.of(URI.create(savepointPath)).resolve("_metadata")).exists();
 
@@ -53,5 +50,31 @@ final class SavepointUpgradeLabTest {
                                     .isEqualByComparingTo("26.50");
                             assertThat(result.report().eventCount()).isEqualTo(4);
                         });
+    }
+
+    /**
+     * The source pausing only proves the source task is running; the downstream chained task can
+     * still be mid-deployment, so the coordinator may reject the first trigger with "not all
+     * required tasks are currently running". Retry the trigger itself rather than waiting longer
+     * on one future, since that rejection returns almost immediately.
+     */
+    private static String triggerSavepointWithRetry(JobClient jobClient, Path savepointDirectory)
+            throws InterruptedException, TimeoutException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+        ExecutionException lastFailure = null;
+        while (System.nanoTime() < deadline) {
+            try {
+                return jobClient
+                        .stopWithSavepoint(
+                                false,
+                                savepointDirectory.toUri().toString(),
+                                SavepointFormatType.CANONICAL)
+                        .get(5, TimeUnit.SECONDS);
+            } catch (ExecutionException e) {
+                lastFailure = e;
+                Thread.sleep(100);
+            }
+        }
+        throw new AssertionError("savepoint trigger kept being rejected", lastFailure);
     }
 }
