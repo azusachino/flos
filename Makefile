@@ -3,7 +3,7 @@ TOPIC ?=
 TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
 
-.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down
+.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop
 
 setup:
 	uv sync
@@ -81,3 +81,7 @@ flink-observability-smoke: flink-pipeline-package
 
 flink-down:
 	podman compose -f "$(FLINK_COMPOSE)" down
+
+netty-event-loop:
+	mvn -pl modules/netty/event-loop-lab -am package
+	java -jar modules/netty/event-loop-lab/target/event-loop-lab.jar
