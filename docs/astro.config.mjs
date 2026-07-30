@@ -38,6 +38,10 @@ export default defineConfig({
           items: [{ autogenerate: { directory: "concepts/flink" } }],
         },
         {
+          label: "Operations",
+          items: [{ autogenerate: { directory: "operations" } }],
+        },
+        {
           label: "Contributing",
           items: [{ autogenerate: { directory: "contributing" } }],
         },

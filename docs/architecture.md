@@ -14,7 +14,9 @@ flos
 │   └── kubernetes      operator-managed session cluster
 ├── scripts             uv-managed automation
 ├── vendor              pinned upstream source submodules
-└── docs                Starlight tutorial
+└── docs
+    ├── concepts        executable Starlight tutorials
+    └── operations      Flink ownership and maintenance handbook
 ```
 
 The Flink operator path is:
@@ -33,3 +35,5 @@ Maven proves operator semantics and packages the jobs. The event-time lab runs l
 The `vendor/` directory is not part of the build. Its shallow submodules pin the Flink and Kubernetes Operator source trees for fast code navigation and local cross-reference; `ignore = all` prevents incidental upstream edits from polluting this project's status.
 
 The version baseline is Flink 2.2.1 on Java 17 with Flink Kubernetes Operator 1.15.0 for Kubernetes deployments. The Compose environment covers Flink job behavior, while the Kubernetes manifest exercises the operator's `FlinkDeployment` reconciliation contract.
+
+The operations handbook deliberately separates example configuration from verified repository behavior. Its snippets describe the target production contract; they become project evidence only after the corresponding connector integration test, failure drill, restore drill, or environment observation exists.
