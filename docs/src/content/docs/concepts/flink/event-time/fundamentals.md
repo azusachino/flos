@@ -102,6 +102,15 @@ var watermarks =
 
 The timestamp assigner answers “when did this order happen?” The watermark generator separately answers “how far through event time have we progressed?”
 
+If the application DTO exposes an epoch-millisecond field named `timestampTs`, the equivalent assignment is:
+
+```java
+.withTimestampAssigner(
+        (dto, previousTimestamp) -> dto.timestampTs())
+```
+
+This does not make `timestampTs` a key. It attaches the DTO's business timestamp to the Flink record. Confirm the unit at the source boundary: epoch seconds and epoch milliseconds are not interchangeable.
+
 ## Step 2: group by user
 
 ```java
@@ -116,6 +125,26 @@ Flink can now maintain independent state:
 alice -> her open windows
 bob   -> his open windows
 ```
+
+Do not use the timestamp as the key:
+
+```java
+// Correct for one fee report per user.
+.keyBy(OrderDto::userId)
+
+// Incorrect: this groups records that happen at the exact same timestamp.
+.keyBy(OrderDto::timestampTs)
+```
+
+Keep three independent coordinates separate:
+
+| Coordinate | Example | Purpose |
+| --- | --- | --- |
+| Kafka record key | `alice` | Chooses the Kafka partition once Kafka is introduced |
+| Flink `keyBy` value | `alice` | Chooses the keyed Flink state and operator instance |
+| Event timestamp | `12:03:00` | Chooses the event-time window |
+
+Using `userId` for both the Kafka record key and Flink `keyBy` is common, but they remain separate partitioning operations.
 
 ## Step 3: assign a tumbling window
 
@@ -137,6 +166,22 @@ Each event belongs to exactly one window:
 ```
 
 The repository test calls Flink's real `TumblingEventTimeWindows` assigner and verifies this boundary.
+
+After `keyBy` and `window`, the effective state identity is approximately:
+
+```text
+(userId, window)
+```
+
+For the example input, Flink maintains independent state entries:
+
+```text
+("alice", [12:00, 12:05)) -> total=22.50, count=3
+("bob",   [12:00, 12:05)) -> total=4.00,  count=1
+("alice", [12:05, 12:10)) -> total=3.00,  count=1
+```
+
+`userId` chooses the first coordinate. `timestampTs` or `occurredAt` chooses the second coordinate by placing the event on the timeline.
 
 ### Window comparison
 
@@ -174,6 +219,38 @@ public FeeAccumulator add(OrderEvent event, FeeAccumulator accumulator) {
             accumulator.totalFee().add(event.fee()),
             accumulator.eventCount() + 1);
 }
+```
+
+### Does Flink store five minutes of raw events?
+
+Not with this `AggregateFunction`. It stores one small `FeeAccumulator` for each open `(userId, window)`:
+
+```text
+initial state  total=0.00,  count=0
+after 10.00    total=10.00, count=1
+after 5.00     total=15.00, count=2
+after 7.50     total=22.50, count=3
+```
+
+The state is approximately:
+
+```java
+FeeAccumulator(totalFee = 22.50, eventCount = 3)
+```
+
+It is not a five-minute list containing all three complete `OrderEvent` objects. Incremental aggregation keeps state proportional to the number of open user/window combinations rather than the raw event count.
+
+This differs from using only a full-window `ProcessWindowFunction`, which may require retaining the window's elements until evaluation. The lab combines an incremental `FeeAggregate` with `FeeWindow`: the aggregate maintains compact state, and the window function adds `customerId`, `windowStart`, and `windowEnd` when emitting the report.
+
+```mermaid
+flowchart LR
+    DTO["Order DTO"] --> Timestamp["timestampTs assigns event time"]
+    Timestamp --> Key["keyBy userId"]
+    Key --> Window["timestamp chooses 5-minute window"]
+    Window --> State["state identity: userId + window"]
+    State --> Aggregate["store total + count"]
+    Aggregate --> Watermark["watermark closes window"]
+    Watermark --> Report["emit FeeReport"]
 ```
 
 ## Step 5: close the window with a watermark
@@ -252,6 +329,14 @@ effective watermark   = 12:04:20
 The first window stays open because partition 1 might still provide an event before `12:05`.
 
 For a sparse source, `withIdleness(timeout)` marks a quiet partition idle so it temporarily stops holding back the minimum. Idleness does not advance time by itself; if every input stops, no new event timestamp advances the watermark.
+
+The current lab does not create real Kafka partitions. `sourcePartition` is an illustrative field inside `OrderEvent`, while:
+
+```java
+environment.setParallelism(1);
+```
+
+runs one Flink subtask over one bounded in-memory source. The lab teaches timestamp, key, window, accumulator, and watermark semantics. Actual 16-partition watermark merging belongs to the later Kafka integration exercise.
 
 ## Late events are a business decision
 
