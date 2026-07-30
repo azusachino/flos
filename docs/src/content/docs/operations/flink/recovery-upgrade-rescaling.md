@@ -2,7 +2,7 @@
 title: Flink Recovery, Upgrade, and Rescaling
 description: Preserve state and external correctness across failures, deployments, version changes, and parallelism changes.
 created: 2026-07-30 19:29
-modified: 2026-07-30 19:29
+modified: 2026-07-30 21:34
 type: documentation
 status: maintained
 maturity: developing
@@ -35,6 +35,8 @@ Restoring Flink state does not erase output already committed to an external sys
 | Normal SOP use | Recover a failed job | Establish a controlled change boundary |
 
 ## Recovery drill
+
+Start with the repository's executable [Checkpoint and Recovery Lab](../../../concepts/flink/state/checkpoint-recovery/). It proves task restart and in-memory checkpoint restoration in an embedded MiniCluster.
 
 Run before production and periodically:
 

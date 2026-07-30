@@ -5,18 +5,14 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.github.azusachino.flos</groupId>
-    <artifactId>flos</artifactId>
+    <artifactId>flink</artifactId>
     <version>0.1.0-SNAPSHOT</version>
-    <relativePath>../../pom.xml</relativePath>
   </parent>
-  <artifactId>flink</artifactId>
-  <packaging>pom</packaging>
-  <modules>
-    <module>operators</module>
-    <module>operator-lab</module>
-    <module>event-time</module>
-    <module>event-time-lab</module>
-    <module>checkpoint-recovery-lab</module>
-    <module>pipeline-lab</module>
-  </modules>
+  <artifactId>flink-event-time</artifactId>
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-streaming-java</artifactId>
+    </dependency>
+  </dependencies>
 </project>
