@@ -30,6 +30,39 @@ flowchart LR
     Watermark --> Late["5. Late-event policy"]
 ```
 
+## Source code map
+
+The example is not only documentation. Its complete source is under `modules/flink/event-time-lab`:
+
+| File | What to learn from it |
+| --- | --- |
+| [`EventTimeLabJob.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time-lab/src/main/java/io/github/azusachino/flos/flink/eventtime/EventTimeLabJob.java) | Assembles the source, timestamps, watermark strategy, `keyBy`, window, aggregate, and output |
+| [`OrderEvent.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time-lab/src/main/java/io/github/azusachino/flos/flink/eventtime/OrderEvent.java) | Separates source sequence, fee, and event timestamp |
+| [`FeeAggregate.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time-lab/src/main/java/io/github/azusachino/flos/flink/eventtime/FeeAggregate.java) | Maintains a small incremental total per user and window |
+| [`FeeWindow.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time-lab/src/main/java/io/github/azusachino/flos/flink/eventtime/FeeWindow.java) | Adds the user and window boundaries to the final report |
+| [`EventTimeConceptsTest.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time-lab/src/test/java/io/github/azusachino/flos/flink/eventtime/EventTimeConceptsTest.java) | Verifies exact window boundaries, out-of-order aggregation, and watermark calculation |
+
+The complete transformation is short:
+
+```java
+var watermarks =
+        WatermarkStrategy.<OrderEvent>forBoundedOutOfOrderness(
+                        Duration.ofSeconds(30))
+                .withTimestampAssigner(
+                        (event, previousTimestamp) ->
+                                event.occurredAt().toEpochMilli());
+
+environment
+        .fromData(events)
+        .assignTimestampsAndWatermarks(watermarks)
+        .keyBy(OrderEvent::customerId)
+        .window(TumblingEventTimeWindows.of(Duration.ofMinutes(5)))
+        .aggregate(new FeeAggregate(), new FeeWindow())
+        .print();
+```
+
+Each following section explains one line of that transformation.
+
 ## Three notions of time
 
 An order event carries `occurredAt`, such as `12:03:00`. That is **event time**: when the business event happened.
@@ -43,6 +76,16 @@ occurredAt       12:03:00   business fact inside the event
 processing time  12:04:02   when this machine handles it
 watermark        12:03:40   earlier event times are now considered late
 ```
+
+### Time comparison
+
+| Time concept | Comes from | Answers | Behavior after replay |
+| --- | --- | --- | --- |
+| Event time | `event.occurredAt()` | When did the business event happen? | The event returns to the same window |
+| Processing time | Flink worker clock | When is Flink handling it? | A replay may enter a different processing-time window |
+| Watermark | Strategy derived from observed event timestamps | How complete does Flink consider event time? | Recomputed as the replayed source progresses |
+
+For historical billing, event time is normally the correct choice because retrying the job should not move an order into a different report.
 
 ## Step 1: assign event timestamps
 
@@ -94,6 +137,17 @@ Each event belongs to exactly one window:
 ```
 
 The repository test calls Flink's real `TumblingEventTimeWindows` assigner and verifies this boundary.
+
+### Window comparison
+
+| Window | Shape | Example use | Does one event enter multiple windows? |
+| --- | --- | --- | --- |
+| Tumbling | Fixed and non-overlapping | One final fee report for each five-minute period | No |
+| Sliding | Fixed and overlapping | Recalculate the previous five minutes every minute | Usually yes |
+| Session | Variable gap between bursts | One user-shopping session ending after inactivity | No, but sessions can merge |
+| Global | One logical window | Custom trigger and eviction behavior | Depends on custom logic |
+
+The requested billing report uses tumbling windows because `[12:00,12:05)` and `[12:05,12:10)` must not count the same order twice.
 
 ## Step 4: aggregate while the window is open
 
@@ -147,6 +201,44 @@ sequenceDiagram
 
 Watermarks are emitted periodically. The configured 30 seconds is therefore a completeness policy, not an exact output timer.
 
+### Watermark strategy comparison
+
+| Strategy | Assumption | Output delay | Fit for the order example |
+| --- | --- | --- | --- |
+| `noWatermarks()` | No event-time progress is required | None from watermarks | Wrong: the unbounded event-time windows would not close normally |
+| `forMonotonousTimestamps()` | Event timestamps never decrease within a source partition | Mainly the periodic emission interval | Wrong if sequence 106 can have an older `occurredAt` than 105 |
+| `forBoundedOutOfOrderness(30s)` | No future timestamp will be more than 30 seconds behind the maximum observed timestamp | Approximately 30 seconds plus periodic emission | The lab's explicit learning assumption |
+| `forGenerator(custom)` | Progress follows a domain-specific rule | Defined by that rule | Useful if the upstream system sends a reliable period-complete marker |
+
+The monotonic event `sequence` and a monotonic timestamp are not equivalent:
+
+```text
+sequence 105 -> occurredAt 12:04:50
+sequence 106 -> occurredAt 12:03:00
+```
+
+The sequence moved forward while event time moved backward. Therefore, `forMonotonousTimestamps()` would be unsafe even though sequence numbers always increase.
+
+`withIdleness(Duration.ofMinutes(1))` is not a fifth base strategy. It decorates one of the strategies above and temporarily excludes a quiet input from downstream watermark calculation.
+
+Choose a strategy by asking:
+
+```mermaid
+flowchart TD
+    EventTime{"Does the operation use event time?"}
+    EventTime -- "No" --> None["noWatermarks() may be enough"]
+    EventTime -- "Yes" --> Ordered{"Can occurredAt decrease per source partition?"}
+    Ordered -- "No" --> Monotonic["forMonotonousTimestamps()"]
+    Ordered -- "Yes" --> Bounded{"Can the disorder be bounded?"}
+    Bounded -- "Yes" --> Bound["forBoundedOutOfOrderness(bound)"]
+    Bounded -- "No" --> Custom["Define a business policy or custom generator"]
+    Monotonic --> Quiet{"Can a partition become quiet?"}
+    Bound --> Quiet
+    Custom --> Quiet
+    Quiet -- "Yes" --> Idle["add withIdleness(timeout)"]
+    Quiet -- "No" --> Use["use the base strategy"]
+```
+
 ## Multiple source partitions
 
 With several active inputs, downstream event-time progress follows the slowest watermark:
@@ -189,6 +281,16 @@ bob   [12:00, 12:05) total=4.00 count=1
 ```
 
 Because the source is bounded, Flink emits a final maximum watermark when the input ends. That closes every remaining window. A Kafka source is unbounded and therefore depends continuously on its configured watermark policy.
+
+### Bounded versus Kafka comparison
+
+| Property | This concept lab | Later Kafka job |
+| --- | --- | --- |
+| Input | Five in-memory records | Unbounded external topic |
+| End of input | Yes | Normally never |
+| Final maximum watermark | Emitted automatically | Not available during normal operation |
+| Infrastructure | None | Kafka and connector configuration |
+| Learning purpose | Observe deterministic window results | Apply the concepts under real partition behavior |
 
 ## Exercises
 
