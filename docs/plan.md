@@ -12,5 +12,6 @@ Build the Apache Flink learning path as complete vertical topics.
 4. Add keyed state, checkpointing, recovery, and savepoints.
 5. Add Kubernetes deployment exercises for Flink Kubernetes Operator 1.15.0.
 6. Introduce Kafka under `modules/` before integrating it with Flink.
+7. Turn the operations handbook's readiness contract into automated deployment, failure-recovery, restore, and reconciliation exercises.
 
 Each milestone requires explanatory content, compilable source, deterministic tests, and a runtime experiment where the concept crosses a process boundary.

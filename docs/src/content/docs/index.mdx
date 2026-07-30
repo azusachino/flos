@@ -2,7 +2,7 @@
 title: Flos
 description: Learn distributed systems concepts through explanations, executable code, tests, and observable experiments.
 created: 2026-07-29 00:00
-modified: 2026-07-29 00:00
+modified: 2026-07-30 19:29
 type: map
 status: maintained
 maturity: stable
@@ -17,9 +17,15 @@ hero:
           link: /concepts/flink/operators/
           icon: right-arrow
           variant: primary
+        - text: Start with Netty
+          link: /concepts/netty/
+          icon: right-arrow
         - text: Set up the project
           link: /getting-started/prerequisites/
           icon: external
+        - text: Operate Flink jobs
+          link: /operations/flink/
+          icon: setting
 ---
 
 import { Card, CardGrid } from "@astrojs/starlight/components";
@@ -34,5 +40,9 @@ import { Card, CardGrid } from "@astrojs/starlight/components";
     <Card title="Observe" icon="magnifier">
         Verify behavior with tests, runtime state, and explicit acceptance
         checks.
+    </Card>
+    <Card title="Operate" icon="setting">
+        Maintain stateful jobs with readiness, deployment, recovery, upgrade,
+        and incident-response procedures.
     </Card>
 </CardGrid>

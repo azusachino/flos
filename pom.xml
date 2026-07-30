@@ -11,11 +11,13 @@
   <description>Executable, topic-focused distributed systems tutorials</description>
   <modules>
     <module>modules/flink</module>
+    <module>modules/netty</module>
   </modules>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
     <flink.version>2.2.1</flink.version>
+    <netty.version>4.2.1.Final</netty.version>
     <flink.kafka.version>5.0.0-2.2</flink.kafka.version>
     <flink.jdbc.version>4.0.0-2.0</flink.jdbc.version>
     <spring.version>7.0.8</spring.version>
@@ -38,6 +40,11 @@
       </dependency>
       <dependency>
         <groupId>org.apache.flink</groupId>
+        <artifactId>flink-clients</artifactId>
+        <version>${flink.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.flink</groupId>
         <artifactId>flink-connector-kafka</artifactId>
         <version>${flink.kafka.version}</version>
       </dependency>
@@ -45,6 +52,11 @@
         <groupId>org.apache.flink</groupId>
         <artifactId>flink-connector-jdbc-core</artifactId>
         <version>${flink.jdbc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-all</artifactId>
+        <version>${netty.version}</version>
       </dependency>
       <dependency>
         <groupId>org.junit.jupiter</groupId>

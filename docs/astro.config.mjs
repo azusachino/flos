@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import mermaid from "astro-mermaid";
 import starlight from "@astrojs/starlight";
 
 export default defineConfig({
@@ -9,6 +10,7 @@ export default defineConfig({
     },
   },
   integrations: [
+    mermaid(),
     starlight({
       title: "Flos",
       description: "Executable tutorials for distributed systems concepts",
@@ -34,6 +36,14 @@ export default defineConfig({
         {
           label: "Apache Flink",
           items: [{ autogenerate: { directory: "concepts/flink" } }],
+        },
+        {
+          label: "Netty",
+          items: [{ autogenerate: { directory: "concepts/netty" } }],
+        },
+        {
+          label: "Operations",
+          items: [{ autogenerate: { directory: "operations" } }],
         },
         {
           label: "Contributing",

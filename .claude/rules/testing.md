@@ -6,6 +6,6 @@ paths:
 
 # Testing conventions
 
-- Test operator semantics deterministically with fixed values and timestamps.
-- Use runtime smoke tests only for boundaries that require a real Flink cluster.
-- A green unit test does not prove job submission, scheduling, or completion.
+- Test operator/handler semantics deterministically: fixed values and timestamps, or a virtual clock (for example `EmbeddedChannel.freezeTime()` / `advanceTimeBy()`).
+- Use runtime smoke tests only for boundaries that require a real cluster or a real socket.
+- A green unit test does not prove job submission, scheduling, connection acceptance, or completion.
