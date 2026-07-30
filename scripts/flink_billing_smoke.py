@@ -10,6 +10,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -62,7 +63,25 @@ def prepare_database() -> None:
       event_count BIGINT NOT NULL,
       PRIMARY KEY (customer_id, window_start, window_end)
     );
+    CREATE TABLE IF NOT EXISTS flos.billing_event_audit (
+      source_partition INT NOT NULL,
+      sequence_number BIGINT NOT NULL,
+      customer_id VARCHAR(128) NOT NULL,
+      fee DECIMAL(19, 2) NOT NULL,
+      occurred_at TIMESTAMP(3) NOT NULL,
+      PRIMARY KEY (source_partition, sequence_number)
+    );
+    CREATE TABLE IF NOT EXISTS flos.billing_too_late_events (
+      source_partition INT NOT NULL,
+      sequence_number BIGINT NOT NULL,
+      customer_id VARCHAR(128) NOT NULL,
+      fee DECIMAL(19, 2) NOT NULL,
+      occurred_at TIMESTAMP(3) NOT NULL,
+      PRIMARY KEY (source_partition, sequence_number)
+    );
     TRUNCATE TABLE flos.fee_reports;
+    TRUNCATE TABLE flos.billing_event_audit;
+    TRUNCATE TABLE flos.billing_too_late_events;
     """
     compose(
         "exec",
@@ -76,7 +95,7 @@ def prepare_database() -> None:
     )
 
 
-def publish_fixture(topic: str) -> None:
+def publish_fixture(topic: str, phase: str) -> None:
     compose(
         "exec",
         "-T",
@@ -87,21 +106,23 @@ def publish_fixture(topic: str) -> None:
         FIXTURE_CLASS,
         "kafka:9092",
         topic,
+        phase,
     )
-    description = compose(
-        "exec",
-        "-T",
-        "kafka",
-        "/opt/kafka/bin/kafka-topics.sh",
-        "--bootstrap-server",
-        "kafka:9092",
-        "--describe",
-        "--topic",
-        topic,
-        capture_output=True,
-    ).stdout
-    if "PartitionCount: 16" not in description:
-        raise RuntimeError(f"topic does not have 16 partitions:\n{description}")
+    if phase == "initial":
+        description = compose(
+            "exec",
+            "-T",
+            "kafka",
+            "/opt/kafka/bin/kafka-topics.sh",
+            "--bootstrap-server",
+            "kafka:9092",
+            "--describe",
+            "--topic",
+            topic,
+            capture_output=True,
+        ).stdout
+        if "PartitionCount: 16" not in description:
+            raise RuntimeError(f"topic does not have 16 partitions:\n{description}")
 
 
 def submit_job(topic: str, group: str) -> None:
@@ -154,16 +175,60 @@ def query_report_summary() -> str:
     ).stdout.strip()
 
 
-def wait_for_reports() -> None:
+def wait_for_query(expected: str, query: Callable[[], str], description: str) -> None:
     deadline = time.monotonic() + TIMEOUT_SECONDS
+    last_value = ""
     while time.monotonic() < deadline:
-        if query_report_summary() == "16\t150.00\t17":
+        last_value = query()
+        if last_value == expected:
             return
         time.sleep(2)
-    raise RuntimeError(
-        "billing report summary did not become 16 rows / 150.00 fee / 17 events; "
-        f"last value was {query_report_summary()!r}"
-    )
+    raise RuntimeError(f"{description} did not become {expected!r}; last value was {last_value!r}")
+
+
+def query_reconciliation() -> str:
+    query = """
+    SELECT
+      CAST(a.audit_fee AS CHAR),
+      a.audit_count,
+      CAST(l.late_fee AS CHAR),
+      l.late_count,
+      CAST(r.report_fee AS CHAR),
+      r.report_count,
+      CAST(a.audit_fee - l.late_fee - r.report_fee AS CHAR),
+      a.audit_count - l.late_count - r.report_count
+    FROM (
+      SELECT SUM(fee) AS audit_fee, COUNT(*) AS audit_count
+      FROM flos.billing_event_audit
+      WHERE occurred_at >= '2026-07-30 12:00:00.000'
+        AND occurred_at < '2026-07-30 12:05:00.000'
+    ) a
+    CROSS JOIN (
+      SELECT COALESCE(SUM(fee), 0) AS late_fee, COUNT(*) AS late_count
+      FROM flos.billing_too_late_events
+      WHERE occurred_at >= '2026-07-30 12:00:00.000'
+        AND occurred_at < '2026-07-30 12:05:00.000'
+    ) l
+    CROSS JOIN (
+      SELECT SUM(total_fee) AS report_fee, SUM(event_count) AS report_count
+      FROM flos.fee_reports
+      WHERE window_start = '2026-07-30 12:00:00.000'
+        AND window_end = '2026-07-30 12:05:00.000'
+    ) r;
+    """
+    return compose(
+        "exec",
+        "-T",
+        "mysql",
+        "mysql",
+        "--batch",
+        "--skip-column-names",
+        "--user=flos",
+        "--password=flos",
+        "--execute",
+        query,
+        capture_output=True,
+    ).stdout.strip()
 
 
 def wait_for_partition_assignments(group: str) -> None:
@@ -220,7 +285,7 @@ def main() -> int:
     try:
         wait_for_flink()
         prepare_database()
-        publish_fixture(topic)
+        publish_fixture(topic, "initial")
         submit_job(topic, group)
 
         deadline = time.monotonic() + TIMEOUT_SECONDS
@@ -230,9 +295,32 @@ def main() -> int:
         if job_id is None:
             raise RuntimeError("submitted billing job was not visible through Flink REST")
 
-        wait_for_reports()
+        wait_for_query(
+            "16\t150.00\t17",
+            query_report_summary,
+            "initial billing report summary",
+        )
         wait_for_partition_assignments(group)
-        print("billing smoke: 16 partitions assigned, 16 reports, total fee 150.00, 17 events")
+
+        publish_fixture(topic, "correction")
+        wait_for_query(
+            "16\t153.00\t18",
+            query_report_summary,
+            "corrected billing report summary",
+        )
+
+        publish_fixture(topic, "advance")
+        publish_fixture(topic, "too_late")
+        wait_for_query(
+            "162.00\t19\t9.00\t1\t153.00\t18\t0.00\t0",
+            query_reconciliation,
+            "source-to-sink reconciliation",
+        )
+
+        print(
+            "billing smoke: 16 partitions, corrected report 153.00 / 18 events, "
+            "one 9.00 too-late event, reconciliation delta 0.00 / 0 events"
+        )
         return 0
     except (
         RuntimeError,

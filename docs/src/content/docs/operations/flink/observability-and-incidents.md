@@ -2,7 +2,7 @@
 title: Flink Observability and Incident Response
 description: Monitor stateful jobs and diagnose stalled watermarks, late data, skew, backpressure, and checkpoints.
 created: 2026-07-30 19:29
-modified: 2026-07-30 19:29
+modified: 2026-07-30 22:06
 type: documentation
 status: maintained
 maturity: developing
@@ -196,6 +196,14 @@ accepted event -> correct original window
 allowed-late event -> correction/upsert
 too-late event -> reconciliation path
 ```
+
+The repository's [Late Data Correction and Reconciliation](../../concepts/flink/event-time/late-data-reconciliation/) lab performs this sequence against Kafka, Flink, and MySQL. Its balance invariant is:
+
+```text
+audited source - explicitly too late - reported accepted = 0
+```
+
+For billing, verify both fee and event count. A zero count delta with a non-zero money delta is still an incident.
 
 ## Runbook: backpressure or lag
 

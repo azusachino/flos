@@ -2,7 +2,7 @@
 title: Event Time Fundamentals
 description: Learn windows and watermarks with bounded in-memory order events before adding Kafka.
 created: 2026-07-30 00:00
-modified: 2026-07-30 21:51
+modified: 2026-07-30 22:06
 type: concept
 status: active
 maturity: developing
@@ -351,7 +351,7 @@ Possible policies include:
 - send it to a side output for reconciliation;
 - wait for an explicit upstream completeness signal.
 
-Billing should not silently choose one. This lab first teaches the boundary; a later topic will implement and compare the policies.
+Billing should not silently choose one. This lab first teaches the boundary; [Late Data Correction and Reconciliation](./late-data-reconciliation/) implements the correction and side-output policies against the Kafka pipeline.
 
 ## Run the lab
 

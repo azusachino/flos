@@ -2,7 +2,7 @@
 title: 16-partition Kafka Billing Pipeline
 description: Run the five-minute event-time billing flow against real Kafka and MySQL services.
 created: 2026-07-30 21:51
-modified: 2026-07-30 21:51
+modified: 2026-07-30 22:06
 type: concept
 status: maintained
 maturity: stable
@@ -22,7 +22,7 @@ The earlier labs use in-memory sources so one concept can be observed at a time.
 flowchart LR
     Producer["Fixture producer"] -->|"partition 0-15"| Kafka["Kafka<br/>16 partitions"]
     Kafka -->|"2 source subtasks"| Flink["Flink event-time job"]
-    Flink -->|"JDBC upsert"| MySQL["MySQL fee_reports"]
+    Flink -->|"audit + report + too-late upserts"| MySQL["MySQL billing tables"]
     Verifier["Smoke verifier"] --> Kafka
     Verifier --> Flink
     Verifier --> MySQL
@@ -43,10 +43,10 @@ The acceptance command requires Podman and permission to access its local VM.
 The live repository acceptance produced:
 
 ```text
-billing smoke: 16 partitions assigned,
-16 reports,
-total fee 150.00,
-17 events
+billing smoke: 16 partitions,
+corrected report 153.00 / 18 events,
+one 9.00 too-late event,
+reconciliation delta 0.00 / 0 events
 ```
 
 This is runtime evidence, not an inference from configuration:
@@ -54,9 +54,10 @@ This is runtime evidence, not an inference from configuration:
 - Kafka topic metadata reported exactly 16 partitions.
 - The active consumer group described partitions 0 through 15.
 - Two Flink source subtasks shared those 16 partitions.
-- MySQL contained 16 reports for `[12:00, 12:05)`.
-- The report fee sum was exactly `150.00`.
-- The report event-count sum was exactly `17`.
+- MySQL first contained 16 reports totaling `150.00` and 17 events for `[12:00, 12:05)`.
+- A `12:03` event published after that first result corrected it to `153.00` and 18 events.
+- A later `12:02` event published after state cleanup was routed to the too-late table.
+- Audit fee minus too-late fee minus report fee was exactly `0.00`; the count delta was `0`.
 - The verifier canceled the unbounded job and deleted its temporary topic.
 
 ## Keep the four coordinates separate
@@ -189,6 +190,8 @@ count = 2 + 15
 
 The next-window events remain open and are not part of the verified report.
 
+The staged correction and reconciliation behavior is explained in [Late Data Correction and Reconciliation](../event-time/late-data-reconciliation/).
+
 ## Watermarks across partitions
 
 The job uses bounded out-of-orderness plus idleness:
@@ -252,32 +255,34 @@ This does not make every possible billing sink exactly-once. Append-only invoice
 `scripts/flink_billing_smoke.py`:
 
 1. waits for a real TaskManager
-2. creates/truncates the report table
+2. creates/truncates the report, source-audit, and too-late tables
 3. creates a uniquely named 16-partition topic
 4. publishes partition-specific monotonic sequences
 5. confirms topic metadata says `PartitionCount: 16`
 6. submits `BillingPipelineJob`
-7. waits for the exact MySQL summary
+7. waits for the exact initial MySQL report
 8. confirms the consumer group covers partitions `0..15`
-9. cancels the unbounded job
-10. deletes the temporary topic
+9. publishes a late correction and waits for the exact revised report
+10. advances the watermark beyond cleanup, then publishes one too-late event
+11. checks exact fee and count reconciliation across all three tables
+12. cancels the unbounded job
+13. deletes the temporary topic
 
 The unique topic and group make repeated executions independent.
 
 ## Evidence boundary
 
-This acceptance proves real connector wiring, topic partition coverage, event-time window closure, keyed aggregation, JDBC upsert behavior, and exact business totals in the local Compose environment.
+This acceptance proves real connector wiring, topic partition coverage, event-time window closure, keyed aggregation, correction upserts, too-late routing, and exact source-to-sink balance in the controlled local Compose fixture.
 
 It does not yet prove:
 
 - checkpoint recovery of the real Kafka job after a TaskManager failure
 - committed Kafka offsets and MySQL state remain consistent after failure
-- late-event correction after the first report is written
 - multiple Kafka brokers or replication-factor failure tolerance
 - production throughput, backpressure, or checkpoint-storage capacity
 - authentication, authorization, TLS, or secret management
 
-The next milestone adds late-data correction and source-to-sink reconciliation evidence.
+The next milestone adds concrete exported metrics, dashboards, and alert rules.
 
 ## Source files
 
