@@ -20,6 +20,8 @@ This lab deliberately has no Kafka, database, or deployment configuration. Its o
 
 > How does Flink turn out-of-order order events into one fee total per user per five-minute business-time period?
 
+Keep [Flink Streaming Glossary](./glossary/) open while reading. It follows the official Flink vocabulary and adds billing and DevOps interpretations for each term.
+
 Learn the concepts in this order:
 
 ```mermaid
