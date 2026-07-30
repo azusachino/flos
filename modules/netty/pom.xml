@@ -13,5 +13,6 @@
   <packaging>pom</packaging>
   <modules>
     <module>event-loop-lab</module>
+    <module>framing-lab</module>
   </modules>
 </project>
