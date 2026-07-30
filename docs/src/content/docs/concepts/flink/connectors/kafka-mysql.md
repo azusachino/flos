@@ -2,7 +2,7 @@
 title: Kafka Source and MySQL Sink
 description: Connect the operator chain to an unbounded Kafka source and a durable MySQL sink.
 created: 2026-07-30 00:00
-modified: 2026-07-30 00:00
+modified: 2026-07-30 21:51
 type: concept
 status: active
 maturity: developing
@@ -15,7 +15,9 @@ source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/connector
 
 # Kafka Source and MySQL Sink
 
-Real Flink jobs sit between systems. The `pipeline-lab` keeps the operator semantics from the bounded tutorial and replaces its in-memory edges:
+Real Flink jobs sit between systems. The `pipeline-lab` contains two connector paths.
+
+The introductory purchase path keeps the operator semantics from the bounded tutorial and replaces its in-memory edges:
 
 ```text
 Kafka purchase-events
@@ -29,6 +31,18 @@ Kafka purchase-events
 ```
 
 The Kafka source starts at the earliest available offset for the tutorial consumer group. The MySQL sink batches idempotent upserts keyed by customer ID. Checkpointing is enabled, but this first sink uses at-least-once delivery. Idempotent writes make retries safe for the accumulated result.
+
+The [16-partition Billing Pipeline](./billing-pipeline/) applies the event-time model to a live connector path:
+
+```text
+Kafka billing-events, 16 partitions
+  -> metadata-aware OrderEvent deserialization
+  -> bounded-out-of-orderness watermarks
+  -> keyBy customerId
+  -> five-minute tumbling window
+  -> JDBC report upsert
+  -> MySQL fee_reports
+```
 
 ## Supporting libraries
 
@@ -56,4 +70,4 @@ Package both executable labs and start the environment:
 make flink-up
 ```
 
-The bounded `make flink-smoke` remains the fast runtime acceptance test. The Kafka-to-MySQL job is intentionally unbounded and is the next hands-on pipeline exercise.
+The bounded `make flink-smoke` remains the fast runtime acceptance test. Run `make flink-billing-smoke` while the stack is up for the real 16-partition Kafka-to-MySQL acceptance path.

@@ -3,7 +3,7 @@ TOPIC ?=
 TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
 
-.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-down
+.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-down
 
 setup:
 	uv sync
@@ -72,6 +72,9 @@ flink-up: flink-package flink-pipeline-package
 
 flink-smoke:
 	uv run scripts/flink_smoke.py
+
+flink-billing-smoke: flink-pipeline-package
+	uv run scripts/flink_billing_smoke.py
 
 flink-down:
 	podman compose -f "$(FLINK_COMPOSE)" down

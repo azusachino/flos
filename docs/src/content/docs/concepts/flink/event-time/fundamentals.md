@@ -2,7 +2,7 @@
 title: Event Time Fundamentals
 description: Learn windows and watermarks with bounded in-memory order events before adding Kafka.
 created: 2026-07-30 00:00
-modified: 2026-07-30 00:00
+modified: 2026-07-30 21:51
 type: concept
 status: active
 maturity: developing
@@ -39,9 +39,9 @@ The example is not only documentation. Its complete source is under `modules/fli
 | File | What to learn from it |
 | --- | --- |
 | [`EventTimeLabJob.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time-lab/src/main/java/io/github/azusachino/flos/flink/eventtime/EventTimeLabJob.java) | Assembles the source, timestamps, watermark strategy, `keyBy`, window, aggregate, and output |
-| [`OrderEvent.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time-lab/src/main/java/io/github/azusachino/flos/flink/eventtime/OrderEvent.java) | Separates source sequence, fee, and event timestamp |
-| [`FeeAggregate.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time-lab/src/main/java/io/github/azusachino/flos/flink/eventtime/FeeAggregate.java) | Maintains a small incremental total per user and window |
-| [`FeeWindow.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time-lab/src/main/java/io/github/azusachino/flos/flink/eventtime/FeeWindow.java) | Adds the user and window boundaries to the final report |
+| [`OrderEvent.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time/src/main/java/io/github/azusachino/flos/flink/eventtime/OrderEvent.java) | Separates source sequence, fee, and event timestamp |
+| [`FeeAggregate.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time/src/main/java/io/github/azusachino/flos/flink/eventtime/FeeAggregate.java) | Maintains a small incremental total per user and window |
+| [`FeeWindow.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time/src/main/java/io/github/azusachino/flos/flink/eventtime/FeeWindow.java) | Adds the user and window boundaries to the final report |
 | [`EventTimeConceptsTest.java`](https://github.com/azusachino/flos/blob/main/modules/flink/event-time-lab/src/test/java/io/github/azusachino/flos/flink/eventtime/EventTimeConceptsTest.java) | Verifies exact window boundaries, out-of-order aggregation, and watermark calculation |
 
 The complete transformation is short:
