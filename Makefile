@@ -3,7 +3,7 @@ TOPIC ?=
 TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
 
-.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-package flink-pipeline-package flink-up flink-smoke flink-down
+.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-package flink-pipeline-package flink-up flink-smoke flink-down
 
 setup:
 	uv sync
@@ -47,6 +47,10 @@ concept-check:
 	mvn -pl "modules/$(CONCEPT)" -am test
 
 concept-test: concept-check
+
+flink-event-time:
+	mvn -pl modules/flink/event-time-lab -am package
+	java -jar modules/flink/event-time-lab/target/event-time-lab.jar
 
 flink-package:
 	mvn -pl modules/flink/operator-lab -am package

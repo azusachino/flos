@@ -14,6 +14,7 @@
   <modules>
     <module>operators</module>
     <module>operator-lab</module>
+    <module>event-time-lab</module>
     <module>pipeline-lab</module>
   </modules>
 </project>

@@ -7,6 +7,7 @@ flos
 ├── modules/flink
 │   ├── operators       reusable transformations and unit tests
 │   ├── operator-lab    executable bounded Flink job
+│   ├── event-time-lab  in-memory windows and watermarks lesson
 │   └── pipeline-lab    Kafka to operators to MySQL job
 ├── environments/flink
 │   ├── compose.yaml    local session cluster
@@ -27,7 +28,7 @@ PurchaseEvent
   -> print sink
 ```
 
-Maven proves operator semantics and packages the jobs. Podman Compose provides a JobManager, TaskManager, Kafka broker, and MySQL database. The bounded Python smoke test waits for the cluster, submits the packaged operator artifact, and verifies the terminal job state through Flink's REST API. The separate pipeline lab applies the same operators to a Kafka source and MySQL JDBC sink.
+Maven proves operator semantics and packages the jobs. The event-time lab runs locally from a bounded collection so windows and watermarks can be learned without infrastructure. Podman Compose provides a JobManager, TaskManager, Kafka broker, and MySQL database. The bounded Python smoke test waits for the cluster, submits the packaged operator artifact, and verifies the terminal job state through Flink's REST API. The separate pipeline lab applies the same operators to a Kafka source and MySQL JDBC sink.
 
 The `vendor/` directory is not part of the build. Its shallow submodules pin the Flink and Kubernetes Operator source trees for fast code navigation and local cross-reference; `ignore = all` prevents incidental upstream edits from polluting this project's status.
 

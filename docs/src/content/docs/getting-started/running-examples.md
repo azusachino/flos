@@ -19,6 +19,12 @@ Run the repository checks:
 make check
 ```
 
+Run the bounded event-time concepts lab without external services:
+
+```sh
+make flink-event-time
+```
+
 Build and start the Flink operator lab:
 
 ```sh
