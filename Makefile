@@ -3,7 +3,7 @@ TOPIC ?=
 TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
 
-.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure
+.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle
 
 setup:
 	uv sync
@@ -93,3 +93,7 @@ netty-framing:
 netty-backpressure:
 	mvn -pl modules/netty/backpressure-lab -am package
 	java -jar modules/netty/backpressure-lab/target/backpressure-lab.jar
+
+netty-lifecycle:
+	mvn -pl modules/netty/lifecycle-lab -am package
+	java -jar modules/netty/lifecycle-lab/target/lifecycle-lab.jar

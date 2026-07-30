@@ -40,8 +40,8 @@ The example is not only documentation. Its complete source is under `modules/net
 ## Two EventLoopGroups, two jobs
 
 ```java
-private final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-private final EventLoopGroup workerGroup = new NioEventLoopGroup();
+private final EventLoopGroup bossGroup = new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory());
+private final EventLoopGroup workerGroup = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
 ```
 
 An `EventLoopGroup` is a pool of single-threaded event loops. Each `EventLoop` owns its channels for their entire lifetime: the same thread that accepts a connection's first byte handles its last one, so handler code never needs to synchronize against itself.
@@ -52,6 +52,8 @@ An `EventLoopGroup` is a pool of single-threaded event loops. Each `EventLoop` o
 | Worker | Each accepted child `Channel` | Run that connection's pipeline: reads, writes, timers |
 
 The boss group here has exactly one thread because accepting connections is cheap; the worker group defaults to `2 * available processors`, because pipeline work is where the actual I/O and handler logic happens.
+
+Netty 4.2 deprecated the older transport-specific `NioEventLoopGroup` constructor in favor of `MultiThreadIoEventLoopGroup` paired with an `IoHandlerFactory` (`NioIoHandler.newFactory()` here). The group is still "the NIO transport" — the new shape just separates "a pool of event loops" from "which I/O mechanism each loop runs," so the same group class works across NIO, epoll, and io_uring by swapping only the factory.
 
 ## The pipeline is an ordered chain
 
