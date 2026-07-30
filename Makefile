@@ -3,7 +3,7 @@ TOPIC ?=
 TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
 
-.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-recovery flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-down
+.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-down
 
 setup:
 	uv sync
@@ -53,7 +53,10 @@ flink-event-time:
 	java -jar modules/flink/event-time-lab/target/event-time-lab.jar
 
 flink-recovery:
-	mvn -pl modules/flink/checkpoint-recovery-lab -am test
+	mvn -pl modules/flink/checkpoint-recovery-lab -am -Dtest=CheckpointRecoveryLabTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+flink-savepoint-upgrade:
+	mvn -pl modules/flink/checkpoint-recovery-lab -am -Dtest=SavepointUpgradeLabTest -Dsurefire.failIfNoSpecifiedTests=false test
 
 flink-recovery-package:
 	mvn -pl modules/flink/checkpoint-recovery-lab -am package

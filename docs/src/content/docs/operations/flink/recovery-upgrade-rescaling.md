@@ -2,7 +2,7 @@
 title: Flink Recovery, Upgrade, and Rescaling
 description: Preserve state and external correctness across failures, deployments, version changes, and parallelism changes.
 created: 2026-07-30 19:29
-modified: 2026-07-30 21:34
+modified: 2026-07-30 21:40
 type: documentation
 status: maintained
 maturity: developing
@@ -65,6 +65,8 @@ recoveryDrill:
 ```
 
 ## Savepoint restore test
+
+The executable [Savepoint Upgrade and Rescaling Lab](../../../concepts/flink/state/savepoint-upgrade/) proves this flow locally with a canonical savepoint and a parallelism change from one to two.
 
 Before a stateful release:
 

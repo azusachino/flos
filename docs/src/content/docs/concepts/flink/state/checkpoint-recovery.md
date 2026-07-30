@@ -2,7 +2,7 @@
 title: Checkpoint and Recovery Lab
 description: Observe a completed checkpoint, injected source failure, task restart, and restored five-minute window.
 created: 2026-07-30 21:34
-modified: 2026-07-30 21:34
+modified: 2026-07-30 21:40
 type: concept
 status: maintained
 maturity: stable
@@ -187,6 +187,8 @@ This lab does not yet prove:
 - savepoint compatibility across application revisions
 
 Those require external checkpoint storage, real connectors, process-level failure injection, and sink reconciliation. The operations handbook's [Recovery, Upgrade, and Rescaling](../../../operations/flink/recovery-upgrade-rescaling/) page describes that broader drill.
+
+For a planned stateful change rather than an unplanned failure, continue with the [Savepoint Upgrade and Rescaling Lab](./savepoint-upgrade/).
 
 ## Source files
 
