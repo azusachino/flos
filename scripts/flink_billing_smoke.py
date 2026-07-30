@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import os
 import subprocess
 import sys
 import time
@@ -12,6 +13,8 @@ import urllib.request
 import uuid
 from collections.abc import Callable
 from pathlib import Path
+
+from flink_observability_smoke import SUCCESS_MESSAGE, wait_for_observability
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 COMPOSE_FILE = PROJECT_ROOT / "environments" / "flink" / "compose.yaml"
@@ -23,6 +26,7 @@ FLINK_OVERVIEW_URL = "http://localhost:8081/overview"
 FLINK_JOBS_URL = "http://localhost:8081/jobs/overview"
 EXPECTED_PARTITIONS = set(range(16))
 TIMEOUT_SECONDS = 90
+CHECK_OBSERVABILITY = os.environ.get("FLINK_OBSERVABILITY_SMOKE") == "1"
 
 
 def compose(*arguments: str, capture_output: bool = False) -> subprocess.CompletedProcess[str]:
@@ -301,6 +305,9 @@ def main() -> int:
             "initial billing report summary",
         )
         wait_for_partition_assignments(group)
+        if CHECK_OBSERVABILITY:
+            wait_for_observability()
+            print(SUCCESS_MESSAGE)
 
         publish_fixture(topic, "correction")
         wait_for_query(

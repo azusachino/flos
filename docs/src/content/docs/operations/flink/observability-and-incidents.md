@@ -2,7 +2,7 @@
 title: Flink Observability and Incident Response
 description: Monitor stateful jobs and diagnose stalled watermarks, late data, skew, backpressure, and checkpoints.
 created: 2026-07-30 19:29
-modified: 2026-07-30 22:06
+modified: 2026-07-30 22:24
 type: documentation
 status: maintained
 maturity: developing
@@ -29,6 +29,76 @@ flowchart TB
 ```
 
 An alert should identify its layer and link to a runbook.
+
+## Repository observability stack
+
+The local environment now makes the monitoring path executable:
+
+```mermaid
+flowchart LR
+    JM["Flink JobManager<br/>:9249"] --> Prometheus
+    TM["Flink TaskManager<br/>:9249"] --> Prometheus
+    Prometheus -->|"PromQL"| Grafana["Grafana<br/>Flink Billing Operations"]
+    Prometheus --> Rules["4 alert rules"]
+    Billing["Kafka billing smoke"] --> JM
+    Billing --> TM
+    Verifier["Observability verifier"] --> Prometheus
+    Verifier --> Grafana
+```
+
+Start the services and run the combined business and observability acceptance:
+
+```sh
+make flink-up
+make flink-observability-smoke
+make flink-down
+```
+
+Open:
+
+- Flink: `http://localhost:8081`
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3000`
+
+The Compose environment enables Flink's Prometheus reporter on both runtime processes:
+
+```yaml
+ENABLE_BUILT_IN_PLUGINS: flink-metrics-prometheus-2.2.1.jar
+
+metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+metrics.reporter.prom.port: 9249
+```
+
+The environment variable moves the reporter JAR shipped in the Flink image from `opt/` into the plugin directory before the process starts. Configuring only the factory class without enabling that plugin would leave the reporter unavailable.
+
+Prometheus scrapes `jobmanager:9249` and `taskmanager:9249` every five seconds. These service names work inside the Compose network; production service discovery should match the deployment platform.
+
+### Executable acceptance contract
+
+`scripts/flink_observability_smoke.py` queries the real APIs and requires:
+
+- exactly two Flink scrape targets, both `up`
+- four named alert rules loaded by Prometheus
+- JobManager, running-job, TaskManager backpressure, and operator traffic metrics
+- the provisioned Grafana dashboard with exactly six panels
+
+The billing verifier calls this while the unbounded billing job is running. A green static YAML parse alone would not prove that the reporter plugin loaded or that job metrics reached Prometheus.
+
+Expected evidence:
+
+```text
+observability smoke: 2 Flink targets up, 4 alert rules loaded,
+4 runtime metrics present, 6 dashboard panels provisioned
+```
+
+The business verifier still separately proves:
+
+```text
+audit fee - too-late fee - report fee = 0.00
+audit count - too-late count - report count = 0
+```
+
+Prometheus health does not substitute for that ledger reconciliation.
 
 ## Minimum dashboard
 
@@ -84,29 +154,48 @@ An alert should identify its layer and link to a runbook.
 
 ## Alert examples
 
-The exact syntax depends on the metric reporter. The logic should remain explicit:
+The repository loads these concrete rules from `environments/flink/observability/flink-alerts.yml`.
 
 ```text
-# No completed checkpoint within three expected intervals.
-time() - flink_jobmanager_job_lastCheckpointCompletionTime
-  > 3 * 30
+up{job="flink"} == 0
 ```
+
+`FlinkMetricsTargetDown` is critical after one minute. It means Prometheus cannot scrape a runtime process; it does not by itself prove that the process is down.
 
 ```text
-# A task is mostly backpressured for ten minutes.
-avg_over_time(
-  flink_taskmanager_job_task_backPressuredTimeMsPerSecond[10m]
-) > 800
+avg_over_time(flink_taskmanager_job_task_backPressuredTimeMsPerSecond[10m]) > 800
 ```
+
+`FlinkTaskMostlyBackpressured` warns after the condition remains true for ten minutes. `800 ms/s` means the task spent more than 80% of observed time backpressured.
 
 ```text
-# Window operator has started dropping late records.
-increase(
-  flink_taskmanager_job_task_operator_numLateRecordsDropped[10m]
-) > 0
+increase(flink_taskmanager_job_task_operator_numLateRecordsDropped[10m]) > 0
 ```
 
-Metric reporter names and labels differ. Validate actual exported names before committing alert rules.
+`FlinkLateRecordsDetected` warns when a window operator receives a record after its allowed-lateness cleanup boundary. In this pipeline that record is routed to the side output, so “dropped” in Flink's metric name means dropped from normal window computation, not silently discarded.
+
+```text
+increase(flink_jobmanager_job_numberOfFailedCheckpoints[10m]) > 0
+```
+
+`FlinkCheckpointFailures` is critical on any failed checkpoint in ten minutes.
+
+These initial rules deliberately avoid a fabricated checkpoint-age expression: Flink exposes checkpoint counts and durations, but the repository has not yet added a trustworthy wall-clock timestamp series for “last successful checkpoint.” Add that signal before alerting on staleness.
+
+### Dashboard panels
+
+The provisioned `Flink Billing Operations` dashboard is version-controlled JSON:
+
+| Panel | Question |
+| --- | --- |
+| Flink scrape targets up | Can Prometheus reach both runtime processes? |
+| Current input watermark | Which task is holding back event-time progress? |
+| Backpressure per task | Is downstream capacity constraining upstream work? |
+| Operator records in per second | Where did traffic stop or skew? |
+| Events beyond allowed lateness | Are records leaving the normal billing path? |
+| Failed checkpoints | Has recoverability degraded? |
+
+The dashboard is a starting operational view, not an SLO. Production labels, cardinality, retention, notification routes, and business dimensions need workload-specific review.
 
 ## Symptom triage
 

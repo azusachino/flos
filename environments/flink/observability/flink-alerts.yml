@@ -1,0 +1,36 @@
+groups:
+  - name: flink-runtime
+    rules:
+      - alert: FlinkMetricsTargetDown
+        expr: up{job="flink"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Flink metrics target is unavailable
+          description: Prometheus cannot scrape {{ $labels.instance }}.
+
+      - alert: FlinkTaskMostlyBackpressured
+        expr: avg_over_time(flink_taskmanager_job_task_backPressuredTimeMsPerSecond[10m]) > 800
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Flink task is mostly backpressured
+          description: Task {{ $labels.task_name }} on subtask {{ $labels.subtask_index }} spent over 80 percent of the last ten minutes backpressured.
+
+      - alert: FlinkLateRecordsDetected
+        expr: increase(flink_taskmanager_job_task_operator_numLateRecordsDropped[10m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: Flink window received records beyond allowed lateness
+          description: Operator {{ $labels.operator_name }} routed or dropped records beyond its allowed-lateness boundary.
+
+      - alert: FlinkCheckpointFailures
+        expr: increase(flink_jobmanager_job_numberOfFailedCheckpoints[10m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: Flink checkpoints are failing
+          description: Job {{ $labels.job_name }} recorded a failed checkpoint in the last ten minutes.

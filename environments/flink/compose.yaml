@@ -43,9 +43,12 @@ services:
       - ../../modules/flink/operator-lab/target/operator-lab.jar:/opt/flink/usrlib/operator-lab.jar:ro
       - ../../modules/flink/pipeline-lab/target/pipeline-lab.jar:/opt/flink/usrlib/pipeline-lab.jar:ro
     environment:
+      ENABLE_BUILT_IN_PLUGINS: flink-metrics-prometheus-2.2.1.jar
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: jobmanager
         parallelism.default: 2
+        metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+        metrics.reporter.prom.port: 9249
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8081/overview || exit 1"]
       interval: 5s
@@ -62,7 +65,49 @@ services:
       - ../../modules/flink/operator-lab/target/operator-lab.jar:/opt/flink/usrlib/operator-lab.jar:ro
       - ../../modules/flink/pipeline-lab/target/pipeline-lab.jar:/opt/flink/usrlib/pipeline-lab.jar:ro
     environment:
+      ENABLE_BUILT_IN_PLUGINS: flink-metrics-prometheus-2.2.1.jar
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: jobmanager
         taskmanager.numberOfTaskSlots: 2
         parallelism.default: 2
+        metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+        metrics.reporter.prom.port: 9249
+
+  prometheus:
+    image: docker.io/prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/flink-alerts.yml:/etc/prometheus/flink-alerts.yml:ro
+    depends_on:
+      jobmanager:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://localhost:9090/-/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 18
+
+  grafana:
+    image: docker.io/grafana/grafana:12.1.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 18
