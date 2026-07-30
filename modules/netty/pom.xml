@@ -14,5 +14,6 @@
   <modules>
     <module>event-loop-lab</module>
     <module>framing-lab</module>
+    <module>backpressure-lab</module>
   </modules>
 </project>
