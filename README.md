@@ -2,9 +2,9 @@
 
 Flos is a topic-focused, executable learning project for distributed systems concepts. Each concept combines explanatory documentation, compilable source code, deterministic tests, and a containerized experiment.
 
-Apache Flink operators are the first concept.
+Apache Flink is the first technology; Netty is the second.
 
-The runtime baseline matches the production compatibility line: Apache Flink 2.2.1, Java 17, and Flink Kubernetes Operator 1.15.0. Podman Compose provides the local learning runtime; the Kubernetes operator remains a distinct deployment target.
+The Flink runtime baseline matches the production compatibility line: Apache Flink 2.2.1, Java 17, and Flink Kubernetes Operator 1.15.0. Podman Compose provides the local learning runtime; the Kubernetes operator remains a distinct deployment target. The Netty labs (event loop, framing, backpressure, connection lifecycle) run as standalone servers with no external services.
 
 ## Quick start
 
@@ -25,6 +25,12 @@ make flink-down
 ```
 
 The Flink dashboard is available at <http://localhost:8081> while the environment is running.
+
+Run a Netty lab, no containers required:
+
+```sh
+make netty-event-loop
+```
 
 ## Repository map
 
