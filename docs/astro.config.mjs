@@ -38,6 +38,10 @@ export default defineConfig({
           items: [{ autogenerate: { directory: "concepts/flink" } }],
         },
         {
+          label: "Netty",
+          items: [{ autogenerate: { directory: "concepts/netty" } }],
+        },
+        {
           label: "Operations",
           items: [{ autogenerate: { directory: "operations" } }],
         },

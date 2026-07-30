@@ -54,3 +54,14 @@ The bounded smoke test waits for a real TaskManager, submits the packaged job th
 The billing smoke creates a temporary 16-partition Kafka topic, publishes monotonic per-partition sequences, runs the event-time billing job, verifies an initial report and a late correction, routes one event beyond allowed lateness, reconciles source audit versus report and rejection totals, cancels the unbounded job, and deletes its topic.
 
 The observability target runs that same billing acceptance and additionally verifies two live Prometheus scrape targets, four loaded alert rules, job metrics, and the six-panel provisioned Grafana dashboard.
+
+Run the Netty concept labs, each a standalone server with no external services:
+
+```sh
+make netty-event-loop
+make netty-framing
+make netty-backpressure
+make netty-lifecycle
+```
+
+Each process listens on its own port until stopped with `Ctrl+C`. The [event loop](/concepts/netty/event-loop/), [framing](/concepts/netty/framing/), [backpressure](/concepts/netty/backpressure/), and [connection lifecycle](/concepts/netty/connection-lifecycle/) tutorials document what to send each one and what to expect back.
