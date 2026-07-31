@@ -7,19 +7,15 @@ FLINK_COMPOSE := environments/flink/compose.yaml
 
 setup:
 	uv sync
-	bun install --cwd docs --frozen-lockfile
 
 fmt:
 	uv run ruff format scripts
-	bun run --cwd docs format
 
 fmt-check:
 	uv run ruff format --check scripts
-	bun run --cwd docs format:check
 
 lint:
 	uv run ruff check scripts
-	bun run --cwd docs check
 
 test:
 	mvn test
@@ -30,13 +26,14 @@ validate: check docs-check flink-recovery-package flink-package flink-pipeline-p
 
 clean:
 	mvn clean
-	rm -rf docs/dist
+	rm -rf site
 
 docs:
-	bun run --cwd docs dev
+	NO_MKDOCS_2_WARNING=true uv run mkdocs serve
 
 docs-check:
-	bun run --cwd docs build
+	NO_MKDOCS_2_WARNING=true uv run mkdocs build --strict
+	uv run scripts/validate_docs_frontmatter.py
 
 topic-new:
 	@test -n "$(TOPIC)" || (echo "TOPIC is required" >&2; exit 2)

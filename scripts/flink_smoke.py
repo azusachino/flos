@@ -32,7 +32,7 @@ def wait_for_flink() -> None:
             overview = request_json(FLINK_OVERVIEW_URL)
             if int(overview.get("taskmanagers", 0)) >= 1:
                 return
-        except (OSError, ValueError, urllib.error.URLError):
+        except OSError, ValueError, urllib.error.URLError:
             pass
         time.sleep(2)
     raise RuntimeError("Flink did not report a ready TaskManager before the timeout")

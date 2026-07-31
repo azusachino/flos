@@ -35,13 +35,13 @@ make netty-event-loop
 ## Repository map
 
 - `modules/` contains the Maven technology modules and executable labs.
-- `docs/` contains the Astro Starlight tutorial.
+- `docs/` contains the MkDocs Material tutorial.
 - `environments/` contains Podman Compose-compatible environments.
 - `vendor/` contains shallow, ignored-worktree submodules pinned to the matching upstream releases.
 - `scripts/` contains uv-managed Python automation.
-- `Makefile` is the public interface for project commands; Bun builds the tutorial and uv runs Python automation.
+- `Makefile` is the public interface for project commands; uv builds the tutorial site and runs Python automation.
 
-See [the setup guide](docs/setup.md), [the architecture](docs/architecture.md), and [the content conventions](docs/src/content/docs/contributing/content-conventions.md).
+See [the setup guide](docs/setup.md), [the architecture](docs/architecture.md), and [the content conventions](docs/contributing/content-conventions.md).
 
 Initialize the optional upstream source references with:
 

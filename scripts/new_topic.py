@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CONTENT_ROOT = PROJECT_ROOT / "docs" / "src" / "content" / "docs" / "concepts"
+CONTENT_ROOT = PROJECT_ROOT / "docs" / "concepts"
 SEGMENT_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 

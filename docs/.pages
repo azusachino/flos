@@ -1,0 +1,8 @@
+nav:
+  - index.md
+  - getting-started
+  - architecture.md
+  - setup.md
+  - concepts
+  - operations
+  - contributing
