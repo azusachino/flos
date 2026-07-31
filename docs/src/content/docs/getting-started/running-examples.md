@@ -25,6 +25,18 @@ Run the bounded event-time concepts lab without external services:
 make flink-event-time
 ```
 
+Run the keyed state TTL and backend-choice lab:
+
+```sh
+make flink-state-ttl
+```
+
+Run the restart-strategy lab, which recovers from two artificial failures and prints both events:
+
+```sh
+make flink-restart-strategy
+```
+
 Run the checkpoint, artificial failure, and recovery integration test:
 
 ```sh
@@ -65,3 +77,13 @@ make netty-lifecycle
 ```
 
 Each process listens on its own port until stopped with `Ctrl+C`. The [event loop](/concepts/netty/event-loop/), [framing](/concepts/netty/framing/), [backpressure](/concepts/netty/backpressure/), and [connection lifecycle](/concepts/netty/connection-lifecycle/) tutorials document what to send each one and what to expect back.
+
+Build, run, and health-check the event loop lab as a real container image:
+
+```sh
+make netty-up
+make netty-smoke
+make netty-down
+```
+
+The smoke test connects to the running container the same way the manual `nc` instructions do, proving the containerized server, not just the jar. See [Containerizing a Netty Service](/operations/netty/deployment/) for what the Dockerfile and health check actually do.
