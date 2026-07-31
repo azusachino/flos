@@ -2,24 +2,21 @@ CONCEPT ?= flink
 TOPIC ?=
 TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
+NETTY_COMPOSE := environments/netty/compose.yaml
 
-.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle
+.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-restart-strategy flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle netty-up netty-smoke netty-down
 
 setup:
 	uv sync
-	bun install --cwd docs --frozen-lockfile
 
 fmt:
 	uv run ruff format scripts
-	bun run --cwd docs format
 
 fmt-check:
 	uv run ruff format --check scripts
-	bun run --cwd docs format:check
 
 lint:
 	uv run ruff check scripts
-	bun run --cwd docs check
 
 test:
 	mvn test
@@ -30,13 +27,14 @@ validate: check docs-check flink-recovery-package flink-package flink-pipeline-p
 
 clean:
 	mvn clean
-	rm -rf docs/dist
+	rm -rf site
 
 docs:
-	bun run --cwd docs dev
+	NO_MKDOCS_2_WARNING=true uv run mkdocs serve
 
 docs-check:
-	bun run --cwd docs build
+	NO_MKDOCS_2_WARNING=true uv run mkdocs build --strict
+	uv run scripts/validate_docs_frontmatter.py
 
 topic-new:
 	@test -n "$(TOPIC)" || (echo "TOPIC is required" >&2; exit 2)
@@ -55,6 +53,10 @@ flink-event-time:
 flink-state-ttl:
 	mvn -pl modules/flink/state-ttl-lab -am package
 	java -jar modules/flink/state-ttl-lab/target/state-ttl-lab.jar
+
+flink-restart-strategy:
+	mvn -pl modules/flink/restart-strategy-lab -am package
+	java -jar modules/flink/restart-strategy-lab/target/restart-strategy-lab.jar
 
 flink-recovery:
 	mvn -pl modules/flink/checkpoint-recovery-lab -am -Dtest=CheckpointRecoveryLabTest -Dsurefire.failIfNoSpecifiedTests=false test
@@ -101,3 +103,12 @@ netty-backpressure:
 netty-lifecycle:
 	mvn -pl modules/netty/lifecycle-lab -am package
 	java -jar modules/netty/lifecycle-lab/target/lifecycle-lab.jar
+
+netty-up:
+	podman compose -f "$(NETTY_COMPOSE)" up -d --build
+
+netty-smoke:
+	uv run scripts/netty_deployment_smoke.py
+
+netty-down:
+	podman compose -f "$(NETTY_COMPOSE)" down

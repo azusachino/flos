@@ -1,0 +1,8 @@
+title: Flink
+nav:
+  - index.md
+  - production-readiness.md
+  - job-lifecycle.md
+  - observability-and-incidents.md
+  - recovery-upgrade-rescaling.md
+  - real-world-applications.md

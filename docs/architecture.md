@@ -1,3 +1,16 @@
+---
+title: Architecture
+description: How the Maven reactor, Podman environments, and documentation site fit together.
+created: 2026-07-29 00:00
+modified: 2026-07-31 00:00
+type: documentation
+status: maintained
+maturity: stable
+tags:
+  - architecture
+  - project-structure
+---
+
 # Architecture
 
 Flos is a Maven reactor organized into top-level technology aggregators. Each technology may contain a reusable semantics module and one or more runnable labs.
@@ -18,7 +31,7 @@ flos
 ├── scripts             uv-managed automation
 ├── vendor              pinned upstream source submodules
 └── docs
-    ├── concepts        executable Starlight tutorials
+    ├── concepts        executable MkDocs Material tutorials
     └── operations      Flink ownership and maintenance handbook
 ```
 

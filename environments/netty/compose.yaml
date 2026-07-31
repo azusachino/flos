@@ -1,0 +1,12 @@
+services:
+  event-loop:
+    build:
+      context: ../..
+      dockerfile: environments/netty/event-loop/Dockerfile
+    ports:
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12

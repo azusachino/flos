@@ -9,9 +9,8 @@ Flos is a topic-focused, executable learning project for distributed systems. Ev
 - Java 17 and a multi-module Maven reactor for examples.
 - Apache Flink 2.2.1, the first technology, aligned with Flink Kubernetes Operator 1.15.0.
 - Netty 4.2.1.Final, the second technology, taught as four standalone connection-lifecycle labs under `modules/netty`.
-- Astro Starlight for the public tutorial.
-- Bun for JavaScript dependency management and documentation commands.
-- uv-managed Python for automation and smoke checks.
+- MkDocs Material for the public tutorial site.
+- uv-managed Python for automation, smoke checks, and documentation commands.
 - Podman Compose-compatible runtime environments.
 - mise for tool provisioning and Make for all contributor commands.
 
@@ -36,7 +35,7 @@ make netty-lifecycle
 
 - Match existing Java package and test structure.
 - Use lowercase kebab-case for documentation paths and tags.
-- Keep topic metadata consistent with the validated Starlight schema.
+- Keep topic metadata consistent with the frontmatter schema `scripts/validate_docs_frontmatter.py` enforces.
 - Keep automation portable and avoid shell-specific behavior.
 - Do not duplicate source classification outside `tags`.
 
@@ -62,7 +61,7 @@ Run `make validate` before committing. Unit tests prove operator/handler semanti
 
 - Push directly to `main`, `master`, or `develop`.
 - Use `git add -A` or `git add .`.
-- Commit generated `target`, `node_modules`, or `docs/dist` output.
+- Commit generated `target`, `site`, or `.venv` output.
 - Introduce date-based journals or calendar tags.
 - Commit secrets or credentials.
 
@@ -71,6 +70,6 @@ Run `make validate` before committing. Unit tests prove operator/handler semanti
 - `pom.xml`
 - `Makefile`
 - `mise.toml`
-- `docs/src/content.config.ts`
-- `docs/astro.config.mjs`
+- `mkdocs.yml`
+- `scripts/validate_docs_frontmatter.py`
 - `environments/flink/compose.yaml`

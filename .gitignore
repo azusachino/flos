@@ -9,10 +9,7 @@
 .ruff_cache/
 __pycache__/
 *.pyc
-node_modules/
-docs/node_modules/
-docs/dist/
-docs/.astro/
+site/
 target/
 **/target/
 .agents/*.log
