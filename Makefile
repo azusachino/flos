@@ -3,7 +3,7 @@ TOPIC ?=
 TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
 
-.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle
+.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-restart-strategy flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle
 
 setup:
 	uv sync
@@ -55,6 +55,10 @@ flink-event-time:
 flink-state-ttl:
 	mvn -pl modules/flink/state-ttl-lab -am package
 	java -jar modules/flink/state-ttl-lab/target/state-ttl-lab.jar
+
+flink-restart-strategy:
+	mvn -pl modules/flink/restart-strategy-lab -am package
+	java -jar modules/flink/restart-strategy-lab/target/restart-strategy-lab.jar
 
 flink-recovery:
 	mvn -pl modules/flink/checkpoint-recovery-lab -am -Dtest=CheckpointRecoveryLabTest -Dsurefire.failIfNoSpecifiedTests=false test

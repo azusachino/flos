@@ -19,5 +19,6 @@
     <module>checkpoint-recovery-lab</module>
     <module>pipeline-lab</module>
     <module>state-ttl-lab</module>
+    <module>restart-strategy-lab</module>
   </modules>
 </project>
