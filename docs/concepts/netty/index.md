@@ -24,3 +24,5 @@ These four labs teach a single TCP connection end to end, in the order a real co
 4. [Connection Lifecycle and Resilience](connection-lifecycle.md) — detecting a silent peer, closing cleanly, and reconnecting.
 
 Each lab pairs a small, complete server under `modules/netty` with tests that separate what an `EmbeddedChannel` proves deterministically from what only a real socket can prove. Later topics can build multi-connection concerns — routing, pooling, protocol-specific handlers — on top of this foundation.
+
+Once a lab's code is proven, [Containerizing a Netty Service](../../operations/netty/deployment.md) takes the event loop lab from `java -jar` on the host to a health-checked, non-root container image, with an executable smoke test proving the running container, not just the jar.

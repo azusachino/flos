@@ -2,8 +2,9 @@ CONCEPT ?= flink
 TOPIC ?=
 TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
+NETTY_COMPOSE := environments/netty/compose.yaml
 
-.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-restart-strategy flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle
+.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-restart-strategy flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle netty-up netty-smoke netty-down
 
 setup:
 	uv sync
@@ -102,3 +103,12 @@ netty-backpressure:
 netty-lifecycle:
 	mvn -pl modules/netty/lifecycle-lab -am package
 	java -jar modules/netty/lifecycle-lab/target/lifecycle-lab.jar
+
+netty-up:
+	podman compose -f "$(NETTY_COMPOSE)" up -d --build
+
+netty-smoke:
+	uv run scripts/netty_deployment_smoke.py
+
+netty-down:
+	podman compose -f "$(NETTY_COMPOSE)" down
