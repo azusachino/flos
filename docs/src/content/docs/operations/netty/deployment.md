@@ -47,22 +47,22 @@ COPY --from=build --chown=flos:flos /workspace/modules/netty/event-loop-lab/targ
 
 The build stage needs the _whole_ reactor's `pom.xml` files, not just the one module being built: Maven reads the root `pom.xml`'s `<modules>` list before it can restrict the actual build to `event-loop-lab` with `-pl`/`-am`, so every declared module — including the unrelated `modules/flink` tree — has to exist in the build context even though only its `pom.xml` files get read. Only the resulting jar crosses into the second `FROM`. The Maven distribution, the JDK compiler, every dependency's full jar — none of it reaches the image that actually runs.
 
-## Two decisions that only show up once you leave your own laptop's architecture
+## A base image tag is not automatically multi-arch
 
-The Dockerfile originally targeted `eclipse-temurin:17-jre-alpine` for a smaller runtime image. It built and ran fine — until run on an Apple Silicon (arm64) host, where the pull failed:
+The Dockerfile originally targeted `eclipse-temurin:17-jre-alpine` for a small runtime image. It built and ran fine — until run on an Apple Silicon (arm64) host, where the pull failed:
 
 ```text
 no image found in image index for architecture "arm64", variant "v8", OS "linux"
 ```
 
-`podman manifest inspect docker.io/library/eclipse-temurin:17-jre-alpine` confirms why: that tag only publishes an `amd64` variant. The Debian-based `eclipse-temurin:17-jre` tag publishes `amd64`, `arm64`, `arm`, `ppc64le`, and `s390x` — genuinely multi-arch, at the cost of a larger image than Alpine. The health check has the same story in miniature: Alpine ships BusyBox `nc`, which Debian-based images don't include by default, so the check uses bash's built-in `/dev/tcp` redirection instead of assuming a netcat binary exists:
+`podman manifest inspect docker.io/library/eclipse-temurin:17-jre-alpine` confirms why: that specific tag only publishes an `amd64` variant, despite Eclipse Temurin publishing arm64 images under other tags. The fix here is `amazoncorretto:17-alpine` instead — verified multi-arch (`amd64` and `arm64`) with `podman manifest inspect`, and the same JDK vendor `mise.toml` already pins for local development (`java = "corretto-17"`), so the container runs the identical build a contributor tests against on their own machine rather than a different vendor's equivalent. Corretto does not publish a separate JRE-only tag the way Temurin does — every Corretto image ships the full JDK, compiler included — but Alpine keeps it smaller than a Debian-based full JDK would be, and the health check can still use Alpine's built-in BusyBox `nc`:
 
 ```dockerfile
 HEALTHCHECK --interval=5s --timeout=3s --retries=12 \
-    CMD bash -c 'exec 3<>/dev/tcp/localhost/9000' || exit 1
+    CMD nc -z localhost 9000 || exit 1
 ```
 
-Neither choice is free. Smaller-but-single-arch and larger-but-portable is a real trade a team makes deliberately, not a default to inherit by accident.
+A base image tag being labeled "Alpine" or "JRE" says nothing about which architectures it actually publishes; `podman manifest inspect` is the only way to know before a teammate's arm64 laptop finds out for you.
 
 ## Running as a real user, not root
 
@@ -106,7 +106,7 @@ make netty-down
 
 ## Exercises
 
-1. Run `podman manifest inspect` against a few other common base image tags (`eclipse-temurin:21-jre-alpine`, `amazoncorretto:17-alpine`) and check which ones are actually multi-arch before assuming.
+1. Run `podman manifest inspect` against `eclipse-temurin:21-jre-alpine` and `amazoncorretto:21-alpine` and check whether the same amd64-only gap exists at the next Java version before assuming it's fixed.
 2. Add a `.dockerignore` violation on purpose — remove `vendor` from `.dockerignore` — and compare the build context size before and after with `podman build --log-level=debug`.
 3. The health check currently only proves the port accepts a TCP connection, not that the echo logic itself works. Change it to something that would fail if `EchoServerHandler`'s logic broke but the port still accepted connections — is that possible with a shell-only `HEALTHCHECK`, or does it need to shell out to something smarter?
 4. Containerize a second lab (`framing-lab` or `backpressure-lab`) by copying this pattern. What, if anything, needs to change beyond the module path and port number?
