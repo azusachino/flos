@@ -22,4 +22,6 @@ The repository pins Flink 2.2.1 and Java 17 to match the Flink Kubernetes Operat
 
 The [Checkpoint and Recovery Lab](./state/checkpoint-recovery/) builds on the event-time lesson with an actual completed checkpoint, injected task failure, automatic restart, and restored five-minute window.
 
+The [Keyed State TTL and Backend Choice Lab](./state/ttl-and-backends/) teaches the complementary half of state: expiring it on purpose, and proving that logic holds behind either the HashMap or RocksDB state backend.
+
 After learning the transformations and event-time model, continue with the [Flink Operations Handbook](../../../operations/flink/). It connects the code to production readiness, observability, recovery, upgrades, rescaling, incident response, and retirement.

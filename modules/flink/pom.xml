@@ -18,5 +18,6 @@
     <module>event-time-lab</module>
     <module>checkpoint-recovery-lab</module>
     <module>pipeline-lab</module>
+    <module>state-ttl-lab</module>
   </modules>
 </project>

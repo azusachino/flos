@@ -54,6 +54,11 @@
         <version>${flink.jdbc.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.flink</groupId>
+        <artifactId>flink-statebackend-rocksdb</artifactId>
+        <version>${flink.version}</version>
+      </dependency>
+      <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-all</artifactId>
         <version>${netty.version}</version>
