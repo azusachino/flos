@@ -24,4 +24,6 @@ The [Checkpoint and Recovery Lab](state/checkpoint-recovery.md) builds on the ev
 
 The [Keyed State TTL and Backend Choice Lab](state/ttl-and-backends.md) teaches the complementary half of state: expiring it on purpose, and proving that logic holds behind either the HashMap or RocksDB state backend.
 
+The [Restart Strategies and the Give-Up Boundary Lab](state/restart-strategies.md) isolates the retry policy itself: how many times a job actually retries before it is declared failed, and whether that safety net exists at all by default.
+
 After learning the transformations and event-time model, continue with the [Flink Operations Handbook](../../operations/flink/index.md). It connects the code to production readiness, observability, recovery, upgrades, rescaling, incident response, and retirement.
