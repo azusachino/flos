@@ -4,7 +4,7 @@ TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
 NETTY_COMPOSE := environments/netty/compose.yaml
 
-.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-restart-strategy flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle netty-up netty-smoke netty-down
+.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-restart-strategy flink-slot-sharing flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle netty-up netty-smoke netty-down
 
 setup:
 	uv sync
@@ -57,6 +57,10 @@ flink-state-ttl:
 flink-restart-strategy:
 	mvn -pl modules/flink/restart-strategy-lab -am package
 	java -jar modules/flink/restart-strategy-lab/target/restart-strategy-lab.jar
+
+flink-slot-sharing:
+	mvn -pl modules/flink/slot-sharing-lab -am package
+	java -jar modules/flink/slot-sharing-lab/target/slot-sharing-lab.jar
 
 flink-recovery:
 	mvn -pl modules/flink/checkpoint-recovery-lab -am -Dtest=CheckpointRecoveryLabTest -Dsurefire.failIfNoSpecifiedTests=false test

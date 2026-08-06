@@ -20,5 +20,6 @@
     <module>pipeline-lab</module>
     <module>state-ttl-lab</module>
     <module>restart-strategy-lab</module>
+    <module>slot-sharing-lab</module>
   </modules>
 </project>

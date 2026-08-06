@@ -2,7 +2,7 @@
 title: Running examples
 description: Build and execute concept modules through the project Makefile.
 created: 2026-07-29 00:00
-modified: 2026-07-30 22:24
+modified: 2026-08-06 00:00
 type: documentation
 status: maintained
 maturity: stable
@@ -35,6 +35,12 @@ Run the restart-strategy lab, which recovers from two artificial failures and pr
 
 ```sh
 make flink-restart-strategy
+```
+
+Run the slot sharing lab, which schedules two subtasks concurrently on a fixed-size local cluster:
+
+```sh
+make flink-slot-sharing
 ```
 
 Run the checkpoint, artificial failure, and recovery integration test:

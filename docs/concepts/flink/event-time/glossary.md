@@ -2,7 +2,7 @@
 title: Flink Streaming Glossary
 description: Official Flink terminology translated into the billing example and production operations.
 created: 2026-07-30 00:00
-modified: 2026-07-30 00:00
+modified: 2026-08-06 00:00
 type: concept
 status: maintained
 maturity: developing
@@ -185,7 +185,7 @@ A task slot is a TaskManager resource allocation unit. With slot sharing, one sl
 
 **Billing meaning:** slots provide capacity for the source, window, and sink subtasks.
 
-**DevOps meaning:** slots partition managed memory but do not provide CPU isolation. More slots per TaskManager improve utilization while increasing shared-JVM contention and failure blast radius.
+**DevOps meaning:** slots partition managed memory but do not provide CPU isolation. More slots per TaskManager improve utilization while increasing shared-JVM contention and failure blast radius. The [Slot Sharing Groups and Parallelism Lab](../operators/slot-sharing-and-parallelism.md) proves exactly how many slots a chain of operators needs, and how pulling one into its own slot sharing group changes that count.
 
 ### Backpressure
 

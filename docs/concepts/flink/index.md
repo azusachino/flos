@@ -2,7 +2,7 @@
 title: Apache Flink
 description: Learn how Flink turns stream transformations into distributed, stateful computations.
 created: 2026-07-29 00:00
-modified: 2026-07-30 21:34
+modified: 2026-08-06 00:00
 type: map
 status: active
 maturity: developing
@@ -25,5 +25,7 @@ The [Checkpoint and Recovery Lab](state/checkpoint-recovery.md) builds on the ev
 The [Keyed State TTL and Backend Choice Lab](state/ttl-and-backends.md) teaches the complementary half of state: expiring it on purpose, and proving that logic holds behind either the HashMap or RocksDB state backend.
 
 The [Restart Strategies and the Give-Up Boundary Lab](state/restart-strategies.md) isolates the retry policy itself: how many times a job actually retries before it is declared failed, and whether that safety net exists at all by default.
+
+The [Slot Sharing Groups and Parallelism Lab](operators/slot-sharing-and-parallelism.md) proves how default slot sharing packs an entire operator chain into one slot per parallel instance, and how isolating an operator into its own group changes the concurrent slot requirement — against a real, fixed-size local cluster.
 
 After learning the transformations and event-time model, continue with the [Flink Operations Handbook](../../operations/flink/index.md). It connects the code to production readiness, observability, recovery, upgrades, rescaling, incident response, and retirement.
