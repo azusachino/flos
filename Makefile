@@ -4,7 +4,7 @@ TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
 NETTY_COMPOSE := environments/netty/compose.yaml
 
-.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-restart-strategy flink-slot-sharing flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle netty-up netty-smoke netty-down
+.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-restart-strategy flink-slot-sharing flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-billing-recovery flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle netty-up netty-smoke netty-down
 
 setup:
 	uv sync
@@ -85,6 +85,9 @@ flink-smoke:
 
 flink-billing-smoke: flink-pipeline-package
 	uv run scripts/flink_billing_smoke.py
+
+flink-billing-recovery: flink-up
+	uv run scripts/flink_billing_recovery.py
 
 flink-observability-smoke: flink-pipeline-package
 	FLINK_OBSERVABILITY_SMOKE=1 uv run scripts/flink_billing_smoke.py

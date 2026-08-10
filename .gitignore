@@ -12,4 +12,6 @@ __pycache__/
 site/
 target/
 **/target/
+artifacts/
+environments/flink/checkpoints/
 .agents/*.log

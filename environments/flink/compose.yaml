@@ -42,11 +42,19 @@ services:
     volumes:
       - ../../modules/flink/operator-lab/target/operator-lab.jar:/opt/flink/usrlib/operator-lab.jar:ro
       - ../../modules/flink/pipeline-lab/target/pipeline-lab.jar:/opt/flink/usrlib/pipeline-lab.jar:ro
+      - flink-checkpoints:/opt/flink/checkpoints
     environment:
       ENABLE_BUILT_IN_PLUGINS: flink-metrics-prometheus-2.2.1.jar
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: jobmanager
         parallelism.default: 2
+        execution.checkpointing.storage: filesystem
+        execution.checkpointing.dir: file:///opt/flink/checkpoints
+        execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
+        execution.checkpointing.max-concurrent-checkpoints: 1
+        restart-strategy.type: fixed-delay
+        restart-strategy.fixed-delay.attempts: 10
+        restart-strategy.fixed-delay.delay: 2 s
         metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
         metrics.reporter.prom.port: 9249
     healthcheck:
@@ -64,12 +72,15 @@ services:
     volumes:
       - ../../modules/flink/operator-lab/target/operator-lab.jar:/opt/flink/usrlib/operator-lab.jar:ro
       - ../../modules/flink/pipeline-lab/target/pipeline-lab.jar:/opt/flink/usrlib/pipeline-lab.jar:ro
+      - flink-checkpoints:/opt/flink/checkpoints
     environment:
       ENABLE_BUILT_IN_PLUGINS: flink-metrics-prometheus-2.2.1.jar
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: jobmanager
         taskmanager.numberOfTaskSlots: 2
         parallelism.default: 2
+        execution.checkpointing.storage: filesystem
+        execution.checkpointing.dir: file:///opt/flink/checkpoints
         metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
         metrics.reporter.prom.port: 9249
 
@@ -111,3 +122,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 18
+
+volumes:
+  flink-checkpoints:

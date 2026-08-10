@@ -34,11 +34,13 @@ Flos contains two complementary exercises:
 
 The embedded lab does not prove process loss, durable checkpoint storage, Kafka offset restoration, or external sink behavior. The billing smoke does not currently fail a TaskManager or verify checkpoint restoration. Do not combine their claims into an end-to-end recovery claim.
 
-## The prerequisite the local Compose file does not provide
+## The local Compose checkpoint boundary
 
-The billing job enables checkpointing every five seconds and assigns stable operator UIDs. The current Compose environment does not configure a durable, shared checkpoint directory for the JobManager and TaskManager. A local filesystem inside one container is not evidence that a checkpoint survives the failure boundary being tested.
+The billing job enables checkpointing every five seconds, assigns stable operator UIDs, and commits Kafka offsets when checkpoints complete. The local Compose environment selects Flink's `filesystem` checkpoint storage, mounts the same named `flink-checkpoints` volume into the JobManager and TaskManager at `/opt/flink/checkpoints`, and configures a fixed-delay restart strategy.
 
-Before running this drill, the target deployment must provide:
+This named volume is durable across a TaskManager container restart on the same Podman machine. It is a local failure boundary, not evidence for an object store, a storage outage, or production durability.
+
+Before running this drill against another target, that deployment must provide:
 
 - checkpoint storage durable across TaskManager replacement
 - the same checkpoint path visible to the JobManager and every TaskManager
@@ -46,7 +48,7 @@ Before running this drill, the target deployment must provide:
 - a restart strategy that permits the job to recover
 - a sink contract that is safe under replay
 
-The current `make flink-up` path is therefore a prerequisite environment, not by itself a pass for this drill. Configure the target environment first, then record the exact configuration revision in the evidence.
+The Compose configuration is now the local target for this drill. Configure any other target first, then record the exact configuration revision in the evidence.
 
 ## Establish the baseline
 
@@ -54,11 +56,20 @@ Run the repository's existing checks before introducing a failure:
 
 ```sh
 make check
-make flink-up
-make flink-billing-smoke
+make flink-billing-recovery
 ```
 
-The billing smoke creates its own 16-partition topic and consumer group, verifies the initial and corrected report, routes one event beyond allowed lateness, checks the source-to-sink ledger, and cancels its job. It is a useful baseline; it is not the recovery drill.
+The focused target packages the existing pipeline, starts the local Compose environment, injects the TaskManager failure, verifies recovery, and writes one manifest below `artifacts/flink-billing-recovery/`. The separate billing smoke remains useful when only connector and reconciliation behavior needs checking; it does not fail a TaskManager.
+
+## Read the checkpoint fields correctly
+
+The drill polls `GET /jobs/{jobId}/checkpoints`. The response has two different facts:
+
+- `latest.completed.id`, `latest.completed.external_path`, `latest.completed.latest_ack_timestamp`, and `latest.completed.state_size` identify the completed checkpoint selected as the pre-failure baseline.
+- `latest.restored.id`, `latest.restored.external_path`, and `latest.restored.restore_timestamp` prove that the same job restored checkpoint state after the failure.
+- `counts.completed` and `counts.restored` are totals, useful for context but insufficient by themselves to identify which checkpoint was restored.
+
+The manifest also records Kafka's committed `current` and `logEnd` offsets for every partition before failure, after recovery, and after the post-recovery fixtures. Those offsets are meaningful here because the billing source explicitly enables `commit.offsets.on.checkpoint`.
 
 For the drill, use a dedicated environment and record:
 
@@ -75,28 +86,17 @@ Do not run this procedure against a shared topic or a production job without an 
 
 ## Execute the failure drill
 
-The commands below describe the boundary. Adapt the deployment command to the target environment; the important part is the order and the evidence, not a particular shell wrapper.
+The target executes the following boundary. Adapt the deployment command to another target environment; the important part is the order and the evidence, not a particular shell wrapper.
 
 ### 1. Start one long-lived billing job
 
-Build and start the existing environment, then submit `pipeline-lab.jar` with a unique topic and consumer group. The job is the existing `BillingPipelineJob`; this tutorial does not introduce a second application.
+The target builds and starts the existing environment, then submits `pipeline-lab.jar` with a unique topic and consumer group. The job is the existing `BillingPipelineJob`; this tutorial does not introduce a second application.
 
 ```sh
-make flink-up
-
-TOPIC="billing-recovery-<run-id>"
-GROUP="flos-billing-recovery-<run-id>"
-
-podman compose -f environments/flink/compose.yaml exec -T jobmanager \
-  flink run -d \
-  -c io.github.azusachino.flos.flink.pipeline.BillingPipelineJob \
-  -Dexecution.checkpointing.dir=<durable-checkpoint-uri> \
-  /opt/flink/usrlib/pipeline-lab.jar
+make flink-billing-recovery
 ```
 
-Use the deployment's supported configuration mechanism for the checkpoint URI if command-line configuration is not accepted. Do not replace `<durable-checkpoint-uri>` with a placeholder and call the result verified.
-
-Record the returned job ID and confirm the job is `RUNNING` with the expected parallelism and stable UIDs.
+Record the job ID from the manifest and confirm the job is `RUNNING` with the expected parallelism and stable UIDs.
 
 ### 2. Publish a baseline and wait for a completed checkpoint
 
