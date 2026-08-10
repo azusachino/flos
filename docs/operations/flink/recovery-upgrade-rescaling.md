@@ -36,7 +36,7 @@ Restoring Flink state does not erase output already committed to an external sys
 
 ## Recovery drill
 
-Start with the repository's executable [Checkpoint and Recovery Lab](../../concepts/flink/state/checkpoint-recovery.md). It proves task restart and in-memory checkpoint restoration in an embedded MiniCluster.
+Start with the repository's executable [Checkpoint and Recovery Lab](../../concepts/flink/state/checkpoint-recovery.md). It proves task restart and in-memory checkpoint restoration in an embedded MiniCluster. For the external Kafka/MySQL procedure and its evidence boundary, use the [Flink Failure and Recovery Drill](failure-recovery-drill.md).
 
 Run before production and periodically:
 
