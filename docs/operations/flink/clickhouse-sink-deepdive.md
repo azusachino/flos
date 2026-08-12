@@ -180,6 +180,77 @@ The first sink lab will set only connector values. It will not pretend that a
 sink batch setting can solve a bad table key, an undersized compute pool, or an
 unbounded CSV request.
 
+## Additional cases to fold into the track
+
+These cases deserve explicit experiments because they can change the table
+engine, ingestion contract, or deployment shape. They are ordered by priority.
+
+| Priority | Case | Decision to make | Minimum evidence |
+| --- | --- | --- | --- |
+| P0 | Accepted write followed by client timeout | How are retries, duplicate rows, and reconciliation handled? | Replay the same batch and compare event identity counts |
+| P0 | Late or out-of-order event | Is the fact table immutable, or do corrections update a latest-state view? | Inject late events across partitions and measure visibility/repair cost |
+| P0 | Backfill and reprocessing | Can historical data be loaded without starving live search and ingest? | Run a bounded backfill concurrently with the normal workload |
+| P0 | Hot-key and symbol skew | Can one user, order, or symbol create a read or write hotspot? | Generate Zipf-like distributions and inspect p99 plus part/merge behavior |
+| P0 | Search versus export contention | Are exports isolated by compute pool, workload, quota, or queue? | Run interactive searches during concurrent large CSV exports |
+| P0 | CSV snapshot semantics | Does an export need a point-in-time view, repeatable ordering, or merely best-effort current data? | Export while inserts and corrections are active; verify duplicates and gaps |
+| P1 | Schema evolution | How do new columns, defaults, renamed fields, and Flink checkpoint restores work? | Restore an older job state with a new mapper and evolved table |
+| P1 | Corrections and deletes | Use tombstones, lightweight deletes/updates, replacement versions, or rebuilds? | Measure read overhead, merge backlog, and physical cleanup delay |
+| P1 | Retention and tiering | What is hot, warm, cold, archived, or legally held? | Exercise TTL/partition movement and query behavior across tiers |
+| P1 | Dimension joins | Denormalize user/order attributes, use dictionaries, or join at query time? | Compare freshness, memory, and query latency for representative joins |
+| P1 | Tenant and authorization isolation | Is isolation by database, table, role, row policy, or separate service? | Prove that a user can only search/export authorized rows |
+| P1 | Node/cache/storage failure | What survives a compute loss, cold cache, object-storage slowdown, or replica loss? | Meet the minimum SLO with one failure injected |
+| P1 | Upgrade and rollback | Which table, connector, protocol, and checkpoint changes are compatible? | Run an upgrade/rollback rehearsal with a non-empty sink buffer |
+| P2 | Full-text or fuzzy symbol search | Is exact symbol equality enough, or is a text index/search service required? | Compare exact, prefix, token, and substring requirements |
+| P2 | Cost and egress control | What is the cost per stored record, search, export, and replay? | Attribute storage, compute, cache, network, and export costs |
+
+The P0 cases are part of the first architecture decision. P1 cases become
+release-readiness gates. P2 cases are allowed to remain separate until a real
+product requirement appears.
+
+### Correctness cases
+
+The track must distinguish three different questions:
+
+1. **Was the row accepted by ClickHouse?** A client timeout does not answer this
+   reliably.
+2. **Can the same event be inserted again?** The Flink sink currently has no
+   exactly-once claim, so event identity and reconciliation are required.
+3. **What should a reader see after a correction?** Append-only facts,
+   replacement versions, tombstones, and lightweight deletes have different
+   visibility and merge behavior.
+
+We should model an immutable event identity, an event version or correction
+sequence, and a read contract such as `argMax`/latest-state. `ReplacingMergeTree`
+or lightweight deletes may help specific cases, but neither should be adopted
+as a generic replacement for an ingestion correctness protocol. ClickHouse
+describes lightweight deletes as read-time masks that are physically cleaned
+later, which makes merge pressure and cleanup timing part of the decision.
+
+### Shape and skew cases
+
+The benchmark must include more than uniform random data:
+
+- a few users with extremely high event volume;
+- symbols with both very high and very low frequency;
+- one order ID lookup versus a range returning millions of rows;
+- empty, one-row, and maximum-size CSV results;
+- bursty ingestion followed by quiet periods;
+- concurrent schema changes or projection materialization.
+
+These cases reveal whether a design is limited by primary-index pruning, a hot
+part, merge debt, memory, admission control, object-storage latency, or simply
+an API contract that permits an unsafe query.
+
+### Operational cases
+
+The operations guide must include dashboards and alerts for query p95/p99,
+read bytes, rejected/queued queries, insert failures, sink buffer depth,
+duplicate rate, active parts, merge backlog, mutation backlog, cache hit/miss,
+object-storage errors, and export queue age. Workload scheduling can protect
+interactive queries, but the current ClickHouse guidance notes that separate
+compute is stronger isolation because CPU scheduling does not cover every
+background activity such as merges and mutations.
+
 ## Proposed topology
 
 ```text
@@ -312,6 +383,12 @@ what to read and why:
   — eventual replacement semantics and the tradeoffs for replay handling.
 - [ClickHouse async inserts](https://clickhouse.com/docs/optimize/asynchronous-inserts)
   — server-side buffering, which we will compare with connector-side batching.
+- [ClickHouse workload scheduling](https://clickhouse.com/docs/operations/workload-scheduling)
+  — CPU, I/O, query-slot, quota, and workload isolation controls.
+- [ClickHouse lightweight deletes](https://clickhouse.com/docs/sql-reference/statements/delete)
+  — correction and deletion semantics that must be tested against merge load.
+- [ClickHouse backup and restore](https://clickhouse.com/docs/operations/backup)
+  — recovery evidence for a large analytical store.
 - [ClickHouse high-concurrency sizing](https://clickhouse.com/resources/engineering/high-concurrency-sizing-user-analytics)
   — a practical performance-reading exercise for throughput and concurrency.
 - [ClickHouse Academy](https://learn.clickhouse.com/)
