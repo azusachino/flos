@@ -27,7 +27,7 @@ domain.
 
 ## Scope
 
-The change will add:
+The change will add a small executable lab plus a role-based learning track:
 
 - `modules/flink/clickhouse-sink-lab`, a Java 17 Maven module;
 - the official ClickHouse Flink DataStream connector;
@@ -36,8 +36,12 @@ The change will add:
 - an isolated ClickHouse container and a Make target that runs the packaged job
   against it;
 - a runnable tutorial for the first successful insert;
-- this deeper guide covering format, batching, retries, delivery semantics,
-  schema design, and measurement;
+- this sink deep dive covering format, batching, retries, delivery semantics,
+  and measurement;
+- companion guides for architecture, data modeling, query/search design,
+  client/API behavior, export workloads, and operations/capacity planning;
+- a benchmark decision record that records measured results instead of
+  presenting guessed defaults as architecture.
 - a curated set of official ClickHouse and Apache Flink resources.
 
 The change will not:
@@ -47,6 +51,134 @@ The change will not:
 - claim exactly-once delivery;
 - claim production-ready ClickHouse settings from a toy workload;
 - add a generic sink abstraction for future databases.
+
+## Target workload to explore
+
+The learning track must be able to reason about this target, without claiming
+that a local laptop proves it:
+
+- 10B+ immutable or mostly append-only records;
+- interactive searches by `user_id`, `order_id`, `event_time` range, and
+  `symbol`;
+- bounded result sets for user-facing requests;
+- CSV generation requests that may scan far more data than interactive search;
+- independent scaling or throttling for ingestion, interactive search, and
+  exports;
+- replay, late data, and duplicate delivery from the upstream Flink job.
+
+The first executable dataset will be a reduced, distribution-preserving sample.
+The benchmark will scale row count, distinct-user ratio, symbol cardinality,
+time span, result-set size, and concurrent request count separately. A row
+count copied from production without its distributions is not a useful sizing
+workload.
+
+## Role-based learning track
+
+One page can explain the sink API. It cannot teach the system. The completed
+track should have these reading paths:
+
+| Role | Question | Planned artifact |
+| --- | --- | --- |
+| Data architect | Is ClickHouse the right analytical store, and what is the storage/compute topology? | Architecture and deployment decision record |
+| Data modeler | How should 10B+ facts be partitioned, ordered, typed, retained, and deduplicated? | MergeTree modeling guide |
+| Query/API engineer | Which access paths serve user, order, date-range, and symbol searches? | Search workload and query-contract guide |
+| Streaming engineer | How do Flink batches, retries, checkpoints, and replay interact with ClickHouse? | This sink deep dive and tutorial |
+| Application engineer | Which client/protocol, timeout, parameterization, pagination, and result limits are safe? | Client and API guide |
+| Export/workflow engineer | How do CSV jobs stream, queue, cancel, and avoid starving interactive queries? | Export workload guide |
+| Platform/SRE | How are compute pools, object storage, cache, merges, quotas, backups, and upgrades operated? | Capacity and operations guide |
+| Performance engineer | Which change improved read bytes, latency, throughput, or cost? | Reproducible benchmark decision record |
+
+The artifacts should cross-link to one glossary and one evidence table. Each
+recommendation must say whether it is a ClickHouse invariant, a workload
+assumption, a measured result, or an unverified production hypothesis.
+
+## Architecture decision path
+
+Compute/storage separation is an architecture choice before it is a server
+setting. The track will compare two explicit options:
+
+1. **Managed or BYOC ClickHouse Cloud:** SharedMergeTree and shared object
+   storage provide the intended separation, while independent compute pools can
+   isolate ingest, hot reads, and cold/export reads.
+2. **Self-managed ClickHouse:** ReplicatedMergeTree with ClickHouse Keeper and
+   local storage plus S3-backed storage policies is a different operational
+   model. It should not be described as equivalent to Cloud's stateless
+   compute without an acceptance test for metadata, cache, failover, restore,
+   and cost behavior.
+
+The initial recommendation for a hard compute/storage-separation requirement is
+to benchmark ClickHouse Cloud or BYOC first, then compare self-management only
+if data residency, control, or cost makes it necessary. The decision record
+must capture storage cost, cache warm-up, ingest scale-up, query scale-up,
+failure recovery, export isolation, and operational ownership.
+
+## Data-model candidates, not premature conclusions
+
+There is no single `ORDER BY` that makes all four access paths equally strong.
+The benchmark should begin with a base table candidate such as:
+
+```sql
+PARTITION BY toYYYYMM(event_time)
+ORDER BY (user_id, event_time, symbol, order_id)
+```
+
+and compare it with a symbol-first candidate for symbol-heavy workloads. An
+`order_id` access path is a candidate for a projection or a deliberately narrow
+lookup table, not automatically a bloom filter. The benchmark must compare:
+
+- user plus time range;
+- order ID only;
+- symbol plus time range;
+- time range only;
+- mixed filters and bounded pagination.
+
+Partitioning is primarily for lifecycle and coarse pruning; it must not create
+one partition per user or order. Projections and skipping indexes are
+alternatives with write, storage, and merge costs, so they enter only after a
+baseline query shows the base sort order is insufficient.
+
+The guide will also cover numeric ID types, `DateTime64`, symbol cardinality,
+`LowCardinality`, nullable columns, codecs, TTL, and the cost of wide rows.
+
+## Exploration and decision loop
+
+Every server, client, and sink choice follows the same loop:
+
+1. Define query and export SLOs: p50/p95/p99 latency, freshness, throughput,
+   maximum result size, maximum export duration, and cost ceiling.
+2. Record the data distributions and concurrency model.
+3. Build a baseline table with one sort order and no speculative projections.
+4. Run the representative workload with cold and warm cache measurements.
+5. Inspect `EXPLAIN`, `system.query_log`, read rows, read bytes, selected marks,
+   memory, CPU, and queued/failed requests.
+6. Change one variable: sort order, partitioning, projection, client setting,
+   sink batch, or compute size.
+7. Re-run the same workload and record the result in the decision record.
+8. Test failure, replay, backpressure, export cancellation, and scale-up before
+   promoting a local result to an architecture recommendation.
+
+The benchmark must avoid `SELECT *`, unbounded offsets, unbounded exports, and
+cache-only victories. User search should use parameterized SQL, explicit
+columns, bounded results, and keyset pagination. CSV generation should be a
+streaming or queued workflow with a separate resource budget, not a giant
+interactive request.
+
+## Configuration surface to explore
+
+The guides will keep these layers separate:
+
+| Layer | Decisions to measure |
+| --- | --- |
+| ClickHouse table | Engine, partition key, `ORDER BY`, data types, codecs, projections, skip indexes, TTL, materialized views |
+| ClickHouse server | Memory and execution limits, merge capacity, cache policy, workload scheduling, query quotas, async inserts, object-storage/cache settings |
+| Interactive client | HTTP versus native protocol, compression, parameter binding, query IDs, timeouts, progress/cancellation, result limits, keyset pagination |
+| Export client | `CSVWithNames`, streaming, compression, queueing, cancellation, destination object storage, per-export limits |
+| Flink sink | Typed RowBinary versus raw JSONEachRow, batch row/byte/time limits, in-flight requests, buffer ceiling, retries, request size, checkpoint/replay behavior |
+| Deployment | Cloud/BYOC versus self-managed, compute pools, replicas, Keeper, object storage, cache warm-up, backups, restore, network path |
+
+The first sink lab will set only connector values. It will not pretend that a
+sink batch setting can solve a bad table key, an undersized compute pool, or an
+unbounded CSV request.
 
 ## Proposed topology
 
