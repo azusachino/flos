@@ -9,4 +9,5 @@
 ## Follow-up experiments
 
 - [ ] Compare HTTP with the native client under a representative workload.
-- [ ] Exercise lateness, backfill, skew, search/export contention, and CSV snapshot consistency.
+- [ ] Exercise distributed Flink lateness/watermark recovery and connector checkpoint replay.
+- [x] Exercise local late-arrival/correction, backfill, skew, search/export contention, and CSV cutoff consistency.

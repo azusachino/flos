@@ -328,6 +328,12 @@ lets a learner complete this loop:
 6. Repeat the job and observe that append-only replay creates duplicates.
 7. Stop the disposable runtime and clean up.
 
+The [local benchmark baseline](clickhouse-benchmark-baseline.md) and
+`make clickhouse-cases` extend the loop with late-arrival/correction, skew,
+backfill, search/export contention, and fixed-cutoff CSV experiments. Their
+results remain local evidence; distributed Flink watermark recovery,
+checkpoint replay, and production compute-pool isolation are separate gates.
+
 Every command must use a repository Make target or a documented command owned
 by the module. The tutorial must label local build evidence, runtime smoke
 evidence, and production guidance separately.

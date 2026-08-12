@@ -81,6 +81,7 @@ Run the ClickHouse sink tutorial and its small query-shape workload:
 ```sh
 make clickhouse-sink-smoke
 make clickhouse-workload
+make clickhouse-cases
 make clickhouse-down
 ```
 
@@ -88,6 +89,11 @@ The sink smoke proves typed network writes and documents append-only replay.
 The workload target compares four filter shapes locally; neither is a
 distributed capacity or exactly-once acceptance test. See [Flink ClickHouse
 Sink Tutorial](../concepts/flink/connectors/clickhouse-sink.md).
+
+The cases target the remaining local correctness and contention questions:
+late arrival plus replacement, hot-key skew, historical backfill during search,
+and CSV export consistency under a slow scan. They remain local evidence, not
+distributed production SLO evidence.
 
 Run the Netty concept labs, each a standalone server with no external services:
 

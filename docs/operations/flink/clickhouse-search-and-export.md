@@ -48,6 +48,12 @@ is easy to inspect, proxy, and stream. Compare the native protocol when
 throughput, compression, metadata, or client feature support becomes a measured
 constraint.
 
+The ClickHouse client bundled by the selected Flink connector exposes only its
+HTTP protocol enum (`Protocol.HTTP`). Therefore this track does not pretend that
+the connector's Java client benchmark compares HTTP with native TCP. A native
+comparison requires a separately selected client and dependency; keep that
+choice explicit rather than silently changing the sink's transport.
+
 The comparison must hold SQL and workload constant:
 
 | Variable | Measure |
@@ -88,13 +94,21 @@ give them a separate resource budget from interactive search.
 
 ## Contention experiment
 
-1. Start `make clickhouse-up`.
-2. Run `make clickhouse-workload` to establish the small query shapes.
-3. Generate a much larger date-range export against a copy of the workload
-   table.
-4. Issue user and order searches during the export.
-5. Compare p95/p99 latency, rejected or queued queries, read bytes, merge
-   backlog, and export age with and without workload separation.
+Run the executable local case:
+
+```sh
+make clickhouse-cases
+```
+
+It starts a slow `CSVWithNames` scan and issues twelve user searches while the
+scan is active. One local run produced a `516.11 ms` export and search latency
+of `5.11 ms` p50 / `8.31 ms` maximum. This is a wiring and measurement
+baseline only: the case has no independent compute pool, quota, or production
+traffic mix.
+
+For a meaningful capacity decision, repeat the case with a much larger table
+and compare p95/p99 latency, rejected or queued queries, read bytes, merge
+backlog, and export age with and without workload separation.
 
 The result decides whether quotas are sufficient or whether independent read
 compute is required. It is not safe to infer isolation from a quiet local
@@ -112,6 +126,11 @@ server.
   page, and export handoff.
 - **Cancellation:** verify both client cancellation and server-side query
   termination using the same query ID.
+
+The case harness also proves a narrower CSV contract: an export with a fixed
+`event_time` cutoff remains byte-for-byte stable after rows outside that cutoff
+are inserted. That is a snapshot boundary chosen by the workflow, not a claim
+that ClickHouse provides a full transaction snapshot for arbitrary exports.
 
 ## Reading
 

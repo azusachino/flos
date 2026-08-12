@@ -12,8 +12,17 @@ CLICKHOUSE_URL = "http://localhost:18123"
 TABLES = ("workload_events", "workload_events_symbol_first")
 
 
-def request(sql: str, body: bytes | None = None) -> str:
-    query = urllib.parse.urlencode({"database": "learning"})
+def request(
+    sql: str,
+    body: bytes | None = None,
+    *,
+    database: str = "learning",
+    query_id: str | None = None,
+) -> str:
+    parameters = {"database": database}
+    if query_id:
+        parameters["query_id"] = query_id
+    query = urllib.parse.urlencode(parameters)
     request = urllib.request.Request(
         f"{CLICKHOUSE_URL}/?{query}",
         data=(body if body is not None else sql.encode()),
@@ -47,14 +56,34 @@ def rows(count: int, table: str) -> bytes:
 def measure(table: str, name: str, sql: str, repetitions: int) -> None:
     elapsed = []
     result = ""
-    for _ in range(repetitions):
+    query_ids = []
+    for index in range(repetitions):
+        query_id = f"workload-{table}-{name.replace(' ', '-')}-{index}"
         started = time.perf_counter()
-        result = request(sql.format(table=table))
+        result = request(sql.format(table=table), query_id=query_id)
         elapsed.append((time.perf_counter() - started) * 1000)
+        query_ids.append(query_id)
+    request("SYSTEM FLUSH LOGS", database="system")
+    profile = json.loads(
+        request(
+            f"""
+            SELECT read_rows, read_bytes,
+                   ProfileEvents['SelectedMarks'] AS selected_marks
+            FROM system.query_log
+            WHERE query_id = '{query_ids[-1]}' AND type = 'QueryFinish'
+            ORDER BY event_time_microseconds DESC
+            LIMIT 1
+            FORMAT JSONEachRow
+            """,
+            database="system",
+        )
+    )
     print(
         f"{table} / {name}: result={result} "
         f"p50_ms={sorted(elapsed)[len(elapsed) // 2]:.2f} "
-        f"min_ms={min(elapsed):.2f} max_ms={max(elapsed):.2f}"
+        f"min_ms={min(elapsed):.2f} max_ms={max(elapsed):.2f} "
+        f"read_rows={profile['read_rows']} read_bytes={profile['read_bytes']} "
+        f"selected_marks={profile['selected_marks']}"
     )
 
 

@@ -5,5 +5,5 @@
 3. [x] Add the disposable ClickHouse runtime and a real sink smoke target.
 4. [x] Add architecture, modeling, search/API, export, and operations guides around the sink tutorial.
 5. [x] Build the reduced representative benchmark and record the first sort-key and sink-replay comparisons. The client comparison remains explicitly open because the local fixture has only exercised HTTP.
-6. [ ] Exercise the remaining P0 cases: lateness, backfill, skew, contention, and CSV consistency. Replay/duplicate evidence is covered by the sink smoke.
+6. [x] Exercise local late-arrival/correction, backfill, skew, search/export contention, and CSV-cutoff consistency cases. Distributed lateness/watermark recovery and production isolation remain follow-up work; replay/duplicate evidence is covered by the sink smoke.
 7. [x] Run repository gates, runtime smoke, and persist the evidence.

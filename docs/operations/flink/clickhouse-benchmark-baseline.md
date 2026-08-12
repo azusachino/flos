@@ -42,19 +42,24 @@ container.
 
 ## First result
 
-One run produced these p50 times in milliseconds:
+One run produced these p50 times in milliseconds, with the final repetition's
+ClickHouse query-log counters:
 
-| Query shape | User-first | Symbol-first |
-| --- | ---: | ---: |
-| User plus time range | 2.58 | 2.53 |
-| Order lookup | 1.98 | 2.53 |
-| Symbol plus time range | 2.18 | 2.80 |
-| Date range | 1.96 | 2.01 |
+| Query shape | User-first p50 / rows / bytes / marks | Symbol-first p50 / rows / bytes / marks |
+| --- | --- | --- |
+| User plus time range | `3.11 ms / 10000 / 160000 / 1` | `2.92 ms / 10000 / 160000 / 1` |
+| Order lookup | `2.37 ms / 10000 / 80000 / 1` | `2.35 ms / 10000 / 80000 / 1` |
+| Symbol plus time range | `2.84 ms / 10000 / 90052 / 1` | `2.73 ms / 10000 / 90052 / 1` |
+| Date range | `2.31 ms / 1 / 16 / 0` | `2.34 ms / 1 / 16 / 0` |
 
-The result counts were identical: `10`, `1`, `2500`, and `10000`. On this tiny
-fixture, startup, HTTP, and cache effects dominate; the numbers do not justify
-a production sort-key decision. The useful result is that the experiment now
-holds data constant while changing one modeling variable.
+The result counts were identical: `10`, `1`, `2500`, and `10000`. The harness
+gets `read_rows`, `read_bytes`, and `SelectedMarks` from `system.query_log`
+after `SYSTEM FLUSH LOGS`; these counters are stronger pruning evidence than
+wall-clock time alone. On this tiny fixture, startup, HTTP, and cache effects
+still dominate, and both keys read the full small part for the selective
+queries. The numbers do not justify a production sort-key decision. The useful
+result is that the experiment holds data constant while changing one modeling
+variable and records the storage-engine counters.
 
 ## Sink baseline
 
@@ -89,7 +94,8 @@ request count, p95 latency, retries, and duplicate rate.
 - Keep the connector's lab batch values as teaching defaults only.
 - Keep HTTP as the simple tutorial client; native protocol comparison remains a
   separate experiment when client CPU, compression, or throughput is a measured
-  constraint.
+  constraint. The selected connector client exposes only `Protocol.HTTP`, so a
+  native comparison needs a separately chosen client.
 
 ## Next experiment
 
@@ -101,3 +107,30 @@ decision.
 
 See the [capacity and benchmark decision record](clickhouse-capacity-and-benchmark.md)
 for the full matrix and evidence template.
+
+## P0 case baseline
+
+Run:
+
+```sh
+make clickhouse-cases
+```
+
+The current local case run reported:
+
+```text
+correctness: late_event_rows=1 replacing_raw_rows=2 replacing_final_rows=1 latest_amount=12
+skew: hot_user_rows=8002 cold_user_rows=2 hot_ms=3.03 cold_ms=2.52
+backfill: rows_before=2000 rows_after=27000 elapsed_ms=194.82 concurrent_search_samples=47
+csv: fixed_cutoff_bytes=456723 stable_after_insert=true slow_export_bytes=465979 slow_export_ms=516.11 search_p50_ms=5.11 search_max_ms=8.31 search_samples=12
+```
+
+These observations support the learning contract, not a production decision:
+
+- an event can arrive after its event time, and a versioned replacement view
+  needs `FINAL` or an equivalent read contract for deterministic latest state;
+- skew and backfill are measurable while searches continue, but this local
+  server has no independent ingest/read/export compute pools;
+- a fixed export cutoff can make a CSV result stable after later rows arrive,
+  while an unbounded current-data export would have a different contract;
+- the slow export and search samples are contention evidence, not an SLO.

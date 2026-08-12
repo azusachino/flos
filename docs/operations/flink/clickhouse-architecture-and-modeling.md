@@ -110,6 +110,19 @@ Run the local harness, then change one dimension at a time:
 make clickhouse-workload
 ```
 
+Run the correctness and skew cases as well:
+
+```sh
+make clickhouse-cases
+```
+
+One local run loaded an 80%-hot user distribution and observed `8002` rows for
+the hot user versus `2` for user `999`; the single-request latencies were
+`3.03 ms` and `2.52 ms`. The fixture is too small for a capacity conclusion,
+but it proves that the benchmark can expose skew instead of assuming uniform
+users. The same run loaded `2,000` live rows and `25,000` historical rows while
+collecting `47` concurrent search samples.
+
 Next experiments:
 
 1. Change the generated user distribution from uniform to a hot-key/Zipf-like
@@ -119,7 +132,9 @@ Next experiments:
 3. Add a projection for `order_id`, materialize it, and compare write/merge
    cost with a narrow lookup table.
 4. Add a late event and a correction version; define what a reader is allowed
-   to see before merges finish.
+   to see before merges finish. `make clickhouse-cases` demonstrates this with
+   one event whose event time precedes ingestion and a `ReplacingMergeTree`
+   versioned correction.
 5. Move one month to cold storage or a separate compute pool and measure cache
    warm-up plus export latency.
 
