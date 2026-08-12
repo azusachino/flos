@@ -1,8 +1,8 @@
 ---
 title: "ClickHouse Sink Lab: Specification and Tuning Decisions"
-description: Draft design for a runnable Flink DataStream sink into ClickHouse, including format, batching, delivery semantics, and learning resources.
+description: Runnable Flink DataStream sink into ClickHouse, including format, batching, delivery semantics, and learning resources.
 created: 2026-08-12 00:00
-modified: 2026-08-12 00:00
+modified: 2026-08-13 00:00
 type: documentation
 status: active
 maturity: developing
@@ -17,7 +17,9 @@ source: https://github.com/ClickHouse/flink-connector-clickhouse
 
 # ClickHouse Sink Lab: Specification and Tuning Decisions
 
-> Draft specification. Implementation starts after this contract is reviewed.
+The first implementation is now runnable. The design remains deliberately
+experimental where the evidence is local or bounded; production choices still
+require workload and failure measurements.
 
 This lab adds a second sink path to Flos: a small, bounded Flink DataStream job
 that writes typed events to ClickHouse. It is intentionally separate from the
@@ -27,7 +29,7 @@ domain.
 
 ## Scope
 
-The change will add a small executable lab plus a role-based learning track:
+The learning track now includes a small executable lab plus role-based guides:
 
 - `modules/flink/clickhouse-sink-lab`, a Java 17 Maven module;
 - the official ClickHouse Flink DataStream connector;
@@ -260,7 +262,7 @@ bounded Flink source
   -> ClickHouse MergeTree table
 ```
 
-The job will emit a small deterministic set of events. The table will contain
+The job emits a small deterministic set of events. The table contains
 an immutable event identity, event time, a low-cardinality dimension, and a
 decimal measure, for example:
 
@@ -308,14 +310,15 @@ small local workload. They are not production recommendations:
 | `maxTimeInBufferMS` | `1000` | Latency ceiling when traffic is below the row/byte thresholds |
 | `maxRecordSizeInBytes` | `65536` | Guardrail for unexpectedly large records |
 
-The deep dive will tune one variable at a time and record throughput,
+The deep dive should tune one variable at a time and record throughput,
 end-to-end latency, ClickHouse inserted rows, failed requests, and duplicate
 counts. It will explain why increasing all six values at once is not a useful
 experiment: the cause of an improvement or regression would be unknowable.
 
 ## Tutorial contract
 
-The tutorial must let a learner complete this loop:
+The [Flink ClickHouse Sink Tutorial](../../concepts/flink/connectors/clickhouse-sink.md)
+lets a learner complete this loop:
 
 1. Start ClickHouse with one Make target.
 2. Create or reset the `learning.sink_events` table.
@@ -331,7 +334,7 @@ evidence, and production guidance separately.
 
 ## Deep-dive contract
 
-The completed guide will answer:
+This guide answers:
 
 - What does the official sink actually do between `invoke` and ClickHouse?
 - How do row count, byte size, time, concurrency, and buffering interact?

@@ -1,7 +1,12 @@
 # ClickHouse sink deep dive
 
-- [ ] Human review of the scope and tuning decisions.
-- [ ] Implement the smallest working typed sink.
-- [ ] Verify the connector against ClickHouse 26.x locally.
-- [ ] Add replay/duplicate evidence.
-- [ ] Publish the tutorial, deep dive, and learning links.
+- [x] Human review of the scope and tuning decisions.
+- [x] Implement the smallest working typed sink.
+- [x] Verify the connector against ClickHouse 26.x locally.
+- [x] Add replay/duplicate evidence.
+- [x] Publish the tutorial, deep dive, and learning links.
+
+## Follow-up experiments
+
+- [ ] Compare HTTP with the native client under a representative workload.
+- [ ] Exercise lateness, backfill, skew, search/export contention, and CSV snapshot consistency.

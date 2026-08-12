@@ -2,9 +2,10 @@ CONCEPT ?= flink
 TOPIC ?=
 TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
+CLICKHOUSE_COMPOSE := environments/clickhouse/compose.yaml
 NETTY_COMPOSE := environments/netty/compose.yaml
 
-.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-restart-strategy flink-slot-sharing flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-up flink-smoke flink-billing-smoke flink-billing-recovery flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle netty-up netty-smoke netty-down
+.PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-restart-strategy flink-slot-sharing flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-clickhouse-package clickhouse-up clickhouse-sink-smoke clickhouse-workload clickhouse-down flink-up flink-smoke flink-billing-smoke flink-billing-recovery flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle netty-up netty-smoke netty-down
 
 setup:
 	uv sync
@@ -76,6 +77,21 @@ flink-package:
 
 flink-pipeline-package:
 	mvn -pl modules/flink/pipeline-lab -am package
+
+flink-clickhouse-package:
+	mvn -pl modules/flink/clickhouse-sink-lab -am package
+
+clickhouse-up:
+	podman compose -f "$(CLICKHOUSE_COMPOSE)" up -d
+
+clickhouse-sink-smoke: flink-clickhouse-package clickhouse-up
+	uv run scripts/clickhouse_sink_smoke.py
+
+clickhouse-workload: clickhouse-up
+	uv run scripts/clickhouse_workload.py
+
+clickhouse-down:
+	podman compose -f "$(CLICKHOUSE_COMPOSE)" down
 
 flink-up: flink-package flink-pipeline-package
 	podman compose -f "$(FLINK_COMPOSE)" up -d

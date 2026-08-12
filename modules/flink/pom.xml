@@ -21,5 +21,6 @@
     <module>state-ttl-lab</module>
     <module>restart-strategy-lab</module>
     <module>slot-sharing-lab</module>
+    <module>clickhouse-sink-lab</module>
   </modules>
 </project>

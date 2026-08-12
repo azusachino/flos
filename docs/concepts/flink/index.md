@@ -28,4 +28,10 @@ The [Restart Strategies and the Give-Up Boundary Lab](state/restart-strategies.m
 
 The [Slot Sharing Groups and Parallelism Lab](operators/slot-sharing-and-parallelism.md) proves how default slot sharing packs an entire operator chain into one slot per parallel instance, and how isolating an operator into its own group changes the concurrent slot requirement — against a real, fixed-size local cluster.
 
+The [Flink ClickHouse Sink Tutorial](connectors/clickhouse-sink.md) writes typed
+events through the official asynchronous ClickHouse connector, then repeats the
+bounded job so append-only replay is visible. Continue with the [ClickHouse
+architecture and modeling guide](../../operations/flink/clickhouse-architecture-and-modeling.md)
+for the 10B+ workload decisions.
+
 After learning the transformations and event-time model, continue with the [Flink Operations Handbook](../../operations/flink/index.md). It connects the code to production readiness, observability, recovery, upgrades, rescaling, incident response, and retirement.

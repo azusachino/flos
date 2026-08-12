@@ -76,6 +76,19 @@ The billing recovery drill runs that unbounded job until a completed external ch
 
 The observability target runs that same billing acceptance and additionally verifies two live Prometheus scrape targets, four loaded alert rules, job metrics, and the six-panel provisioned Grafana dashboard.
 
+Run the ClickHouse sink tutorial and its small query-shape workload:
+
+```sh
+make clickhouse-sink-smoke
+make clickhouse-workload
+make clickhouse-down
+```
+
+The sink smoke proves typed network writes and documents append-only replay.
+The workload target compares four filter shapes locally; neither is a
+distributed capacity or exactly-once acceptance test. See [Flink ClickHouse
+Sink Tutorial](../concepts/flink/connectors/clickhouse-sink.md).
+
 Run the Netty concept labs, each a standalone server with no external services:
 
 ```sh
