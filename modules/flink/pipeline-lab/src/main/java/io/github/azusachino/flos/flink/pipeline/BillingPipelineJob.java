@@ -75,6 +75,7 @@ public final class BillingPipelineJob {
                         .setTopics(settings.getKafkaTopic())
                         .setGroupId(settings.getKafkaGroupId())
                         .setStartingOffsets(OffsetsInitializer.earliest())
+                        .setProperty("commit.offsets.on.checkpoint", "true")
                         .setDeserializer(new OrderEventKafkaDeserializationSchema())
                         .build();
 

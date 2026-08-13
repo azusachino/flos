@@ -2,7 +2,7 @@
 title: Running examples
 description: Build and execute concept modules through the project Makefile.
 created: 2026-07-29 00:00
-modified: 2026-08-06 00:00
+modified: 2026-08-10 19:52
 type: documentation
 status: maintained
 maturity: stable
@@ -63,6 +63,7 @@ Build and start the Flink operator lab:
 make flink-up
 make flink-smoke
 make flink-billing-smoke
+make flink-billing-recovery
 make flink-observability-smoke
 make flink-down
 ```
@@ -71,7 +72,28 @@ The bounded smoke test waits for a real TaskManager, submits the packaged job th
 
 The billing smoke creates a temporary 16-partition Kafka topic, publishes monotonic per-partition sequences, runs the event-time billing job, verifies an initial report and a late correction, routes one event beyond allowed lateness, reconciles source audit versus report and rejection totals, cancels the unbounded job, and deletes its topic.
 
+The billing recovery drill runs that unbounded job until a completed external checkpoint exists, kills and restarts only the TaskManager, verifies restored checkpoint and committed source offsets, checks idempotent MySQL keys and reconciliation, and persists a manifest under `artifacts/flink-billing-recovery/`.
+
 The observability target runs that same billing acceptance and additionally verifies two live Prometheus scrape targets, four loaded alert rules, job metrics, and the six-panel provisioned Grafana dashboard.
+
+Run the ClickHouse sink tutorial and its small query-shape workload:
+
+```sh
+make clickhouse-sink-smoke
+make clickhouse-workload
+make clickhouse-cases
+make clickhouse-down
+```
+
+The sink smoke proves typed network writes and documents append-only replay.
+The workload target compares four filter shapes locally; neither is a
+distributed capacity or exactly-once acceptance test. See [Flink ClickHouse
+Sink Tutorial](../concepts/flink/connectors/clickhouse-sink.md).
+
+The cases target the remaining local correctness and contention questions:
+late arrival plus replacement, hot-key skew, historical backfill during search,
+and CSV export consistency under a slow scan. They remain local evidence, not
+distributed production SLO evidence.
 
 Run the Netty concept labs, each a standalone server with no external services:
 

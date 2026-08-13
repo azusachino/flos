@@ -34,8 +34,16 @@ The repository currently proves bounded concepts, Java packaging, documentation 
 1. [Production Readiness](production-readiness.md) defines the contract a job must satisfy before deployment.
 2. [Job Lifecycle SOP](job-lifecycle.md) covers build, deploy, verify, operate, upgrade, rollback, and retire.
 3. [Observability and Incident Response](observability-and-incidents.md) turns metrics into diagnosis.
-4. [Recovery, Upgrade, and Rescaling](recovery-upgrade-rescaling.md) handles state across failures and planned changes.
-5. [Real-world Applications](real-world-applications.md) explains where Flink fits and where a simpler system is better.
+4. [Failure and Recovery Drill](failure-recovery-drill.md) defines the evidence required after a TaskManager failure.
+5. [Recovery, Upgrade, and Rescaling](recovery-upgrade-rescaling.md) handles state across failures and planned changes.
+6. [Real-world Applications](real-world-applications.md) explains where Flink fits and where a simpler system is better.
+
+For the ClickHouse learning track, read the [sink deep dive](clickhouse-sink-deepdive.md),
+then the [architecture and modeling guide](clickhouse-architecture-and-modeling.md),
+[search and export guide](clickhouse-search-and-export.md), and [capacity and
+benchmark record](clickhouse-capacity-and-benchmark.md). The [local benchmark
+baseline](clickhouse-benchmark-baseline.md) records the first measured result.
+These guides keep local executable evidence separate from production hypotheses.
 
 Keep the [Flink Streaming Glossary](../../concepts/flink/event-time/glossary.md) nearby for official terminology with billing and DevOps interpretations.
 
