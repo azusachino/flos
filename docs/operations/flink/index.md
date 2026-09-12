@@ -13,7 +13,7 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/production_ready/
 ---
 
-# Flink Operations Handbook
+## Flink Operations Handbook
 
 This handbook explains how a team owns a stateful Flink job after the transformation code compiles.
 
@@ -29,7 +29,7 @@ Kafka order events
 
 The repository currently proves bounded concepts, Java packaging, documentation builds, and a narrow session-cluster smoke. It does **not** prove a production-ready billing job. The production snippets in this handbook are adoption guidance until their storage, security, metrics, failure, and restore paths are implemented and exercised in a real environment.
 
-## Read in this order
+### Read in this order
 
 1. [Production Readiness](production-readiness.md) defines the contract a job must satisfy before deployment.
 2. [Job Lifecycle SOP](job-lifecycle.md) covers build, deploy, verify, operate, upgrade, rollback, and retire.
@@ -47,7 +47,7 @@ These guides keep local executable evidence separate from production hypotheses.
 
 Keep the [Flink Streaming Glossary](../../concepts/flink/event-time/glossary.md) nearby for official terminology with billing and DevOps interpretations.
 
-## Ownership model
+### Ownership model
 
 Every production job should name:
 
@@ -60,7 +60,7 @@ Every production job should name:
 
 One person may hold multiple roles in a small team, but the responsibilities should remain explicit.
 
-## Maintenance loop
+### Maintenance loop
 
 ```mermaid
 flowchart LR
@@ -77,7 +77,7 @@ flowchart LR
     Rollback --> Verify
 ```
 
-## Evidence levels
+### Evidence levels
 
 Use precise claims:
 
@@ -94,7 +94,7 @@ Use precise claims:
 
 Never promote a lower evidence level into a stronger claim.
 
-## Version baseline
+### Version baseline
 
 This handbook targets:
 

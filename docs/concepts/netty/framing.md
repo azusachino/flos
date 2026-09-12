@@ -13,7 +13,7 @@ tags:
 source: https://netty.io/4.2/api/io/netty/handler/codec/LengthFieldBasedFrameDecoder.html
 ---
 
-# Netty Framing and Codecs
+## Netty Framing and Codecs
 
 The [event loop lab](event-loop.md) assumed each `channelRead` delivers exactly one application message. This lab proves that assumption false, then fixes it. Its only question is:
 
@@ -26,7 +26,7 @@ flowchart LR
     Fix --> Decoder["LengthFieldBasedFrameDecoder buffers until a full frame exists"]
 ```
 
-## Source code map
+### Source code map
 
 The example is not only documentation. Its complete source is under `modules/netty/framing-lab`:
 
@@ -36,7 +36,7 @@ The example is not only documentation. Its complete source is under `modules/net
 | [`FramedEchoHandler.java`](https://github.com/azusachino/flos/blob/main/modules/netty/framing-lab/src/main/java/io/github/azusachino/flos/netty/framing/FramedEchoHandler.java) | Only ever sees complete frames — framing concerns never reach it |
 | [`FramingCodecTest.java`](https://github.com/azusachino/flos/blob/main/modules/netty/framing-lab/src/test/java/io/github/azusachino/flos/netty/framing/FramingCodecTest.java) | Proves the coalescing problem, proves the decoder solves it, and proves it over a real socket |
 
-## The problem, proven
+### The problem, proven
 
 ```java
 ByteBuf combined =
@@ -53,7 +53,7 @@ assertThat(received.get(0).toString(StandardCharsets.UTF_8)).isEqualTo("firstsec
 
 The opposite failure is just as real: a single message can arrive split across two or more reads if the sender's write is larger than a packet, or the receiver reads before all bytes have arrived.
 
-## The fix: prefix every message with its length
+### The fix: prefix every message with its length
 
 ```java
 new LengthFieldBasedFrameDecoder(MAX_FRAME_LENGTH, 0, LENGTH_FIELD_LENGTH, 0, LENGTH_FIELD_LENGTH)
@@ -82,7 +82,7 @@ sequenceDiagram
     Decoder->>Handler: channelRead("second")
 ```
 
-## Buffering a message that arrives in two pieces
+### Buffering a message that arrives in two pieces
 
 ```java
 int splitPoint = 6; // inside the 4-byte length header plus two body bytes
@@ -95,7 +95,7 @@ assertThat(received).containsExactly("hello-world");
 
 `lengthFieldFramingBuffersASplitMessage` writes the first 6 bytes of an 11-byte body's frame — not even the whole length header is guaranteed complete — and asserts nothing is emitted. Only once the remaining bytes arrive does the decoder emit the single, complete frame. This is `ByteToMessageDecoder`'s cumulation buffer at work: it holds partial input across calls until a full frame can be extracted, and `FramedEchoHandler` never learns that the read was ever split.
 
-## What's proven, what's not
+### What's proven, what's not
 
 | Test | Proves |
 | --- | --- |
@@ -106,7 +106,7 @@ assertThat(received).containsExactly("hello-world");
 
 The `EmbeddedChannel` tests construct the coalescing and splitting conditions directly, because relying on a real loopback socket to reproduce a specific split point is not deterministic. The real-socket test instead proves the wiring — bootstrap, pipeline order, decoder, prepender — is assembled correctly end to end.
 
-## Run the lab
+### Run the lab
 
 ```sh
 make netty-framing
@@ -114,13 +114,13 @@ make netty-framing
 
 The process listens on port `9001` until stopped with `Ctrl+C`. Manual testing needs a length-prefixed client rather than plain `nc`, since the wire format now requires a 4-byte length header before every message — that is exactly the property this lab is teaching. Read the test's `writeFrame`/`readFrame` helpers for the exact byte layout if you want to script one.
 
-## Exercises
+### Exercises
 
 1. Set `maxFrameLength` to `4` and send a 5-byte body. Which exception is thrown, and where — in the decoder, or in `FramedEchoHandler`?
 2. Change `lengthFieldOffset` to `2` and prepend two unused bytes before the length field. What does `initialBytesToStrip` need to become to keep the same output?
 3. Remove `LengthFieldPrepender` from the pipeline but keep the decoder. Predict what the client receives back, and why the asymmetry matters.
 4. `lengthFieldFramingBuffersASplitMessage` splits at byte 6. Try splitting at byte 1, inside the length field itself, and confirm the decoder still recovers the correct frame.
 
-## What's next
+### What's next
 
 Framing guarantees a handler sees whole messages. It says nothing about what happens when a handler produces messages faster than a slow consumer can accept them — the next lab covers backpressure.

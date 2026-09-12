@@ -14,7 +14,7 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/state/savepoints/
 ---
 
-# Savepoint Upgrade and Rescaling Lab
+## Savepoint Upgrade and Rescaling Lab
 
 Checkpoint recovery and savepoint upgrades preserve the same kinds of state, but solve different operational problems:
 
@@ -31,7 +31,7 @@ Run it:
 make flink-savepoint-upgrade
 ```
 
-## Proven workflow
+### Proven workflow
 
 ```mermaid
 sequenceDiagram
@@ -65,7 +65,7 @@ The source is paused before the savepoint so the snapshot contains a useful inte
 
 Revision B restores those values, consumes the final `5.00` event, and closes the window at end of input.
 
-## Revision A: establish the change boundary
+### Revision A: establish the change boundary
 
 The test starts revision A asynchronously because the client must remain available to request the savepoint:
 
@@ -108,7 +108,7 @@ assertThat(Path.of(URI.create(savepointPath)).resolve("_metadata")).exists();
 
 The `_metadata` file is the savepoint entry point. The surrounding directory also contains or references state data and must be managed as a unit.
 
-## Stable stateful operator identity
+### Stable stateful operator identity
 
 Both revisions use exactly the same UIDs for state-bearing parts of the topology:
 
@@ -134,7 +134,7 @@ A generated operator ID depends on topology structure and can change after appar
 
 The `keyBy` transformation itself has no independent operator state. Its key selector determines how records and keyed state are partitioned into the downstream window operator.
 
-## Revision B: restore and rescale
+### Revision B: restore and rescale
 
 Revision B receives the savepoint path through Flink configuration:
 
@@ -157,7 +157,7 @@ revision B: 16 key groups redistributed over 2 window subtasks
 
 Alice remains one key and therefore belongs to exactly one revision B subtask. Rescaling redistributes key groups; it does not split one hot key across subtasks.
 
-## Compatible code change
+### Compatible code change
 
 Revision B identifies its output through a new stateless operator:
 
@@ -179,7 +179,7 @@ return new UpgradeResult(
         task.getNumberOfParallelSubtasks());
 ```
 
-## Acceptance evidence
+### Acceptance evidence
 
 The integration assertion requires all of the important results:
 
@@ -202,7 +202,7 @@ This proves:
 - the source resumed from its saved cursor
 - the final business result remained unchanged
 
-## Compatibility matrix
+### Compatibility matrix
 
 | Proposed revision B change | Default expectation | Required evidence |
 | --- | --- | --- |
@@ -216,7 +216,7 @@ This proves:
 | Change accumulator/serializer | Depends on serializer compatibility | Old-artifact savepoint restored by new artifact |
 | Remove stateful operator | Unmapped state remains | Explicit disposal decision; avoid casual `allowNonRestoredState` |
 
-## Operational translation
+### Operational translation
 
 The local test performs the same logical steps as a production rollout:
 
@@ -233,7 +233,7 @@ assert FeeReport                  reconcile sink and business totals
 
 Production adds source ownership, durable storage, sink transactions, traffic coordination, deployment health, rollback, and retention management.
 
-## What remains unproven
+### What remains unproven
 
 This experiment does not prove:
 
@@ -246,13 +246,13 @@ This experiment does not prove:
 
 The next project milestone connects the same billing state model to a real 16-partition Kafka topic.
 
-## Source files
+### Source files
 
 - [`SavepointUpgradeLab.java`](https://github.com/azusachino/flos/blob/main/modules/flink/checkpoint-recovery-lab/src/main/java/io/github/azusachino/flos/flink/recovery/SavepointUpgradeLab.java)
 - [`SavepointOrderSource.java`](https://github.com/azusachino/flos/blob/main/modules/flink/checkpoint-recovery-lab/src/main/java/io/github/azusachino/flos/flink/recovery/SavepointOrderSource.java)
 - [`SavepointUpgradeLabTest.java`](https://github.com/azusachino/flos/blob/main/modules/flink/checkpoint-recovery-lab/src/test/java/io/github/azusachino/flos/flink/recovery/SavepointUpgradeLabTest.java)
 
-## Official references
+### Official references
 
 - [Savepoints](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/state/savepoints/)
 - [Checkpoints versus savepoints](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/state/checkpoints_vs_savepoints/)

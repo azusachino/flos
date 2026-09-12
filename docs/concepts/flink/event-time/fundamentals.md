@@ -14,7 +14,7 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/datastream/event-time/generating_watermarks/
 ---
 
-# Event Time Fundamentals
+## Event Time Fundamentals
 
 This lab deliberately has no Kafka, database, or deployment configuration. Its only question is:
 
@@ -32,7 +32,7 @@ flowchart LR
     Watermark --> Late["5. Late-event policy"]
 ```
 
-## Source code map
+### Source code map
 
 The example is not only documentation. Its complete source is under `modules/flink/event-time-lab`:
 
@@ -65,7 +65,7 @@ environment
 
 Each following section explains one line of that transformation.
 
-## Three notions of time
+### Three notions of time
 
 An order event carries `occurredAt`, such as `12:03:00`. That is **event time**: when the business event happened.
 
@@ -79,7 +79,7 @@ processing time  12:04:02   when this machine handles it
 watermark        12:03:40   earlier event times are now considered late
 ```
 
-### Time comparison
+#### Time comparison
 
 | Time concept | Comes from | Answers | Behavior after replay |
 | --- | --- | --- | --- |
@@ -89,7 +89,7 @@ watermark        12:03:40   earlier event times are now considered late
 
 For historical billing, event time is normally the correct choice because retrying the job should not move an order into a different report.
 
-## Step 1: assign event timestamps
+### Step 1: assign event timestamps
 
 The lab tells Flink to use `occurredAt`:
 
@@ -113,7 +113,7 @@ If the application DTO exposes an epoch-millisecond field named `timestampTs`, t
 
 This does not make `timestampTs` a key. It attaches the DTO's business timestamp to the Flink record. Confirm the unit at the source boundary: epoch seconds and epoch milliseconds are not interchangeable.
 
-## Step 2: group by user
+### Step 2: group by user
 
 ```java
 .keyBy(OrderEvent::customerId)
@@ -148,7 +148,7 @@ Keep three independent coordinates separate:
 
 Using `userId` for both the Kafka record key and Flink `keyBy` is common, but they remain separate partitioning operations.
 
-## Step 3: assign a tumbling window
+### Step 3: assign a tumbling window
 
 ```java
 .window(TumblingEventTimeWindows.of(Duration.ofMinutes(5)))
@@ -185,7 +185,7 @@ For the example input, Flink maintains independent state entries:
 
 `userId` chooses the first coordinate. `timestampTs` or `occurredAt` chooses the second coordinate by placing the event on the timeline.
 
-### Window comparison
+#### Window comparison
 
 | Window | Shape | Example use | Does one event enter multiple windows? |
 | --- | --- | --- | --- |
@@ -196,7 +196,7 @@ For the example input, Flink maintains independent state entries:
 
 The requested billing report uses tumbling windows because `[12:00,12:05)` and `[12:05,12:10)` must not count the same order twice.
 
-## Step 4: aggregate while the window is open
+### Step 4: aggregate while the window is open
 
 The lab receives Alice's records in this arrival order:
 
@@ -223,7 +223,7 @@ public FeeAccumulator add(OrderEvent event, FeeAccumulator accumulator) {
 }
 ```
 
-### Does Flink store five minutes of raw events?
+#### Does Flink store five minutes of raw events?
 
 Not with this `AggregateFunction`. It stores one small `FeeAccumulator` for each open `(userId, window)`:
 
@@ -255,7 +255,7 @@ flowchart LR
     Watermark --> Report["emit FeeReport"]
 ```
 
-## Step 5: close the window with a watermark
+### Step 5: close the window with a watermark
 
 The job allows 30 seconds of timestamp disorder. Conceptually:
 
@@ -280,7 +280,7 @@ sequenceDiagram
 
 Watermarks are emitted periodically. The configured 30 seconds is therefore a completeness policy, not an exact output timer.
 
-### Watermark strategy comparison
+#### Watermark strategy comparison
 
 | Strategy | Assumption | Output delay | Fit for the order example |
 | --- | --- | --- | --- |
@@ -318,7 +318,7 @@ flowchart TD
     Quiet -- "No" --> Use["use the base strategy"]
 ```
 
-## Multiple source partitions
+### Multiple source partitions
 
 With several active inputs, downstream event-time progress follows the slowest watermark:
 
@@ -340,7 +340,7 @@ environment.setParallelism(1);
 
 runs one Flink subtask over one bounded in-memory source. The lab teaches timestamp, key, window, accumulator, and watermark semantics. Actual 16-partition watermark merging belongs to the later Kafka integration exercise.
 
-## Late events are a business decision
+### Late events are a business decision
 
 An event is late when it belongs to a window whose end has already been passed by the watermark.
 
@@ -353,7 +353,7 @@ Possible policies include:
 
 Billing should not silently choose one. This lab first teaches the boundary; [Late Data Correction and Reconciliation](late-data-reconciliation.md) implements the correction and side-output policies against the Kafka pipeline.
 
-## Run the lab
+### Run the lab
 
 ```sh
 make flink-event-time
@@ -369,7 +369,7 @@ bob   [12:00, 12:05) total=4.00 count=1
 
 Because the source is bounded, Flink emits a final maximum watermark when the input ends. That closes every remaining window. A Kafka source is unbounded and therefore depends continuously on its configured watermark policy.
 
-### Bounded versus Kafka comparison
+#### Bounded versus Kafka comparison
 
 | Property | This concept lab | Later Kafka job |
 | --- | --- | --- |
@@ -379,7 +379,7 @@ Because the source is bounded, Flink emits a final maximum watermark when the in
 | Infrastructure | None | Kafka and connector configuration |
 | Learning purpose | Observe deterministic window results | Apply the concepts under real partition behavior |
 
-## Exercises
+### Exercises
 
 1. Change Alice sequence 105 to `occurredAt=12:05:00` and predict its window before running the test.
 2. Change the window size to ten minutes and write down the new boundaries.

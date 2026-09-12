@@ -13,7 +13,7 @@ tags:
 source: https://nightlies.apache.org/flink/flink-kubernetes-operator-docs-release-1.15/docs/try-flink-kubernetes-operator/quick-start/
 ---
 
-# Kubernetes Operator
+## Kubernetes Operator
 
 The local Compose environment and the Kubernetes Operator answer different questions:
 
@@ -22,7 +22,7 @@ The local Compose environment and the Kubernetes Operator answer different quest
 
 This project aligns the Kubernetes path with Java 17, Flink 2.2.1, and Flink Kubernetes Operator 1.15.0. The initial manifest creates a session cluster so you can inspect reconciliation before adding image-building and application-job deployment concepts.
 
-## Install the operator
+### Install the operator
 
 Use a disposable Kubernetes cluster or a development namespace. Your current `kubectl` context will be modified.
 
@@ -33,7 +33,7 @@ helm install flink-kubernetes-operator \
   flink-operator-repo/flink-kubernetes-operator
 ```
 
-## Reconcile the session cluster
+### Reconcile the session cluster
 
 ```sh
 kubectl apply -f environments/flink/kubernetes/flink-deployment.yaml

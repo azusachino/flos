@@ -13,11 +13,11 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/production_ready/
 ---
 
-# Flink Production Readiness
+## Flink Production Readiness
 
 A job is production-ready only when its correctness and recovery contracts are explicit and tested. A green Maven build is necessary, but it does not answer how state survives failure or how duplicate external writes are reconciled.
 
-## Readiness record
+### Readiness record
 
 Maintain one reviewed record per job:
 
@@ -69,7 +69,7 @@ operations:
 
 This is an example contract, not a committed production configuration. Endpoint names, credentials, and storage policies must come from the target environment.
 
-## Stable operator identity
+### Stable operator identity
 
 Flink maps saved state back to operators by operator UID. Auto-generated IDs depend on topology and are fragile across code changes.
 
@@ -98,7 +98,7 @@ UID rules:
 - Fail submission when a production job contains an unintended auto-generated UID.
 - Treat accumulator and serializer changes as state migrations.
 
-## Parallelism contract
+### Parallelism contract
 
 Parallelism describes current concurrency. Maximum parallelism determines the number of key groups and constrains future rescaling.
 
@@ -118,7 +118,7 @@ Review:
 
 For 16 Kafka partitions, source parallelism above 16 does not create more active Kafka readers for that topic. Downstream keyed operators may use different parallelism if measured independently.
 
-## Checkpoint contract
+### Checkpoint contract
 
 The current repository pipeline calls:
 
@@ -164,7 +164,7 @@ Checkpoint acceptance requires evidence:
 4. The source resumes from the corresponding position.
 5. The sink result remains correct after replay.
 
-## Event-time contract
+### Event-time contract
 
 Document:
 
@@ -190,7 +190,7 @@ Monitor the contract:
 
 Watermark delay and allowed lateness are correctness/product policies, not throughput tuning knobs.
 
-## Sink contract
+### Sink contract
 
 Flink state recovery does not undo external writes. The sink must define behavior under replay.
 
@@ -220,7 +220,7 @@ Review:
 - downstream visibility during partial failure
 - reconciliation procedure
 
-## Restart and high availability
+### Restart and high availability
 
 Define a restart strategy rather than inheriting an unknown cluster default:
 
@@ -244,7 +244,7 @@ Restart policy questions:
 - Which checkpoint will recovery use?
 - Can the sink safely observe replay?
 
-## Security contract
+### Security contract
 
 Flink can submit and execute user code. Do not expose the REST API or dashboard directly to the public internet.
 
@@ -259,7 +259,7 @@ Require:
 - dependency and Flink CVE review
 - audit trail for deploy, savepoint, restore, cancel, and delete operations
 
-## Readiness gate
+### Readiness gate
 
 Do not approve production deployment until every item is answered:
 
@@ -275,7 +275,7 @@ Do not approve production deployment until every item is answered:
 - [ ] Upgrade and rollback procedures have a compatible restore artifact.
 - [ ] Business output is verified independently of Flink job status.
 
-## Official references
+### Official references
 
 - [Production readiness checklist](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/production_ready/)
 - [Checkpoints](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/state/checkpoints/)

@@ -14,12 +14,12 @@ tags:
 source: https://clickhouse.com/resources/engineering/clickhouse-query-optimisation-definitive-guide
 ---
 
-# ClickHouse Local Benchmark Baseline
+## ClickHouse Local Benchmark Baseline
 
 This is the first measured result for the learning track. It is a reproducible
 local baseline, not a 10B-row capacity claim.
 
-## Fixture and controls
+### Fixture and controls
 
 Run:
 
@@ -40,7 +40,7 @@ interface through the repository's Python standard-library client. Results are
 measured after both tables are loaded in the same local ClickHouse 26.7
 container.
 
-## First result
+### First result
 
 One run produced these p50 times in milliseconds, with the final repetition's
 ClickHouse query-log counters:
@@ -61,7 +61,7 @@ queries. The numbers do not justify a production sort-key decision. The useful
 result is that the experiment holds data constant while changing one modeling
 variable and records the storage-engine counters.
 
-## Sink baseline
+### Sink baseline
 
 Run:
 
@@ -85,7 +85,7 @@ measurements. A useful ingestion benchmark must keep the JVM and Flink runtime
 warm, vary batch row/byte/time limits one at a time, and record rows/s, bytes/s,
 request count, p95 latency, retries, and duplicate rate.
 
-## What this baseline decides
+### What this baseline decides
 
 - Keep the user-first key as the initial candidate because user-plus-time is a
   first-class search, while retaining symbol-first as a measured alternative.
@@ -97,7 +97,7 @@ request count, p95 latency, retries, and duplicate rate.
   constraint. The selected connector client exposes only `Protocol.HTTP`, so a
   native comparison needs a separately chosen client.
 
-## Next experiment
+### Next experiment
 
 Scale one dimension at a time: 1M rows, realistic user/symbol cardinality,
 hot-key skew, concurrent searches, and a large CSV scan. Capture rows read,
@@ -108,7 +108,7 @@ decision.
 See the [capacity and benchmark decision record](clickhouse-capacity-and-benchmark.md)
 for the full matrix and evidence template.
 
-## P0 case baseline
+### P0 case baseline
 
 Run:
 

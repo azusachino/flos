@@ -13,7 +13,7 @@ tags:
 source: https://netty.io/4.2/api/io/netty/channel/WriteBufferWaterMark.html
 ---
 
-# Netty Backpressure and Flow Control
+## Netty Backpressure and Flow Control
 
 The [framing lab](framing.md) guaranteed a handler sees whole messages. It said nothing about what happens if a handler produces messages faster than the other side can accept them. This lab's only question is:
 
@@ -27,7 +27,7 @@ flowchart LR
     Resumed --> Produce
 ```
 
-## Source code map
+### Source code map
 
 The example is not only documentation. Its complete source is under `modules/netty/backpressure-lab`:
 
@@ -37,11 +37,11 @@ The example is not only documentation. Its complete source is under `modules/net
 | [`ThrottledProducerHandler.java`](https://github.com/azusachino/flos/blob/main/modules/netty/backpressure-lab/src/main/java/io/github/azusachino/flos/netty/backpressure/ThrottledProducerHandler.java) | Writes while writable, stops, and resumes from `channelWritabilityChanged` |
 | [`BackpressureTest.java`](https://github.com/azusachino/flos/blob/main/modules/netty/backpressure-lab/src/test/java/io/github/azusachino/flos/netty/backpressure/BackpressureTest.java) | Proves the raw watermark mechanism, the handler's pause/resume bookkeeping, and a real slow consumer |
 
-## Nobody blocks; a buffer fills instead
+### Nobody blocks; a buffer fills instead
 
 Netty's I/O is non-blocking end to end: `ctx.write(msg)` never waits for the socket to accept bytes. It hands the message to that channel's `ChannelOutboundBuffer`, which tracks how many bytes are queued but not yet confirmed sent. If a consumer keeps reading, this buffer stays small. If it stops — a slow client, a paused peer, a saturated network — pending bytes accumulate with nothing to stop them, unless the producer is watching.
 
-## The watermark, proven directly
+### The watermark, proven directly
 
 ```java
 channel.config().setOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(1024, 2048));
@@ -59,7 +59,7 @@ assertThat(channel.isWritable()).isTrue();
 
 Low and high watermarks are deliberately different values (hysteresis): without a gap, a producer sitting exactly at one number could flap between writable and not writable on every single byte.
 
-## A producer that respects the signal
+### A producer that respects the signal
 
 ```java
 private void produce(ChannelHandlerContext ctx) {
@@ -84,7 +84,7 @@ public void channelWritabilityChanged(ChannelHandlerContext ctx) {
 
 `ThrottledProducerHandler` checks `isWritable()` before every chunk. When the buffer crosses the high watermark mid-loop, the loop condition itself stops production — no separate flag needed. Production only resumes when Netty calls back into `channelWritabilityChanged` with `isWritable() == true`, which happens automatically once pending bytes drop below the low watermark. The handler never polls; it reacts to the same event Netty already fires for exactly this purpose.
 
-## What's proven, what's not
+### What's proven, what's not
 
 | Test | Proves | Limitation |
 | --- | --- | --- |
@@ -94,7 +94,7 @@ public void channelWritabilityChanged(ChannelHandlerContext ctx) {
 
 The gap between the second and third test is the same gap the [event loop lab](event-loop.md) first drew: `EmbeddedChannel` proves Netty's own bookkeeping deterministically; only a real socket proves the bookkeeping actually holds a producer back while bytes are physically in flight.
 
-## Run the lab
+### Run the lab
 
 ```sh
 make netty-backpressure
@@ -108,13 +108,13 @@ nc localhost 9002 | pv -L 64K > /dev/null
 
 (`pv -L 64K` throttles the read rate to 64&nbsp;KB/s if installed; without it, `nc ... | cat > /dev/null` still receives everything, just without an artificial slow reader to visibly trigger a pause.)
 
-## Exercises
+### Exercises
 
 1. Lower `HIGH_WATERMARK` to `16 * 1024` and predict whether `pausedCount` increases or decreases for the same 8&nbsp;MB payload.
 2. Remove the `while` loop's `isWritable()` check entirely, keeping only the `bytesSent.get() < totalBytes` condition. Predict what happens to memory usage against a consumer that never reads.
 3. `produce()` calls `ctx.flush()` unconditionally after its loop, even when the loop stopped because the channel became unwritable. Is that flush ever able to send more bytes in that case? Why is it still safe to call?
 4. Change the real-socket test's `Thread.sleep(500)` to `0`. Does `pausedCount` reliably stay above zero, and what does that imply about how much of the pause depends on timing versus payload size?
 
-## What's next
+### What's next
 
 This lab throttles a healthy connection. It says nothing about a connection that goes idle, disconnects, or needs to reconnect — the next lab covers connection lifecycle.

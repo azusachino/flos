@@ -13,7 +13,7 @@ tags:
 source: https://netty.io/4.2/api/io/netty/handler/timeout/IdleStateHandler.html
 ---
 
-# Netty Connection Lifecycle and Resilience
+## Netty Connection Lifecycle and Resilience
 
 The [backpressure lab](backpressure.md) assumed a connection stays open and healthy. Real connections don't: a peer can go silent without ever sending a TCP `FIN`, and a client can lose its server mid-session. This lab's only question is:
 
@@ -27,7 +27,7 @@ flowchart LR
     Gone --> Retry["Client schedules a reconnect after backoff"]
 ```
 
-## Source code map
+### Source code map
 
 The example is not only documentation. Its complete source is under `modules/netty/lifecycle-lab`:
 
@@ -38,7 +38,7 @@ The example is not only documentation. Its complete source is under `modules/net
 | [`ReconnectingClient.java`](https://github.com/azusachino/flos/blob/main/modules/netty/lifecycle-lab/src/main/java/io/github/azusachino/flos/netty/lifecycle/ReconnectingClient.java) | Detects `channelInactive` and reconnects after a fixed backoff |
 | [`LifecycleTest.java`](https://github.com/azusachino/flos/blob/main/modules/netty/lifecycle-lab/src/test/java/io/github/azusachino/flos/netty/lifecycle/LifecycleTest.java) | Proves the idle timeout deterministically, over a real socket, and proves the reconnect loop |
 
-## Detecting silence: IdleStateHandler
+### Detecting silence: IdleStateHandler
 
 ```java
 new IdleStateHandler(0, 0, idleTimeoutMillis, TimeUnit.MILLISECONDS)
@@ -61,11 +61,11 @@ public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
 }
 ```
 
-## Closing gracefully, not abruptly
+### Closing gracefully, not abruptly
 
 `ctx.close()` alone can race with a pending write: if the write hasn't reached the socket yet, an immediate close can drop it. `.addListener(ChannelFutureListener.CLOSE)` instead closes the channel only after that specific write's future completes — the peer is guaranteed to receive `"idle-timeout\n"` before the connection ends, rather than seeing the connection simply disappear.
 
-## Proving idle detection three ways
+### Proving idle detection three ways
 
 ```java
 channel.freezeTime();
@@ -80,7 +80,7 @@ assertThat(channel.isOpen()).isFalse();
 
 `realSocketIdleTimeoutClosesTheConnection` proves the same behavior over an actual socket with a real 200 ms wait: the client reads exactly the `"idle-timeout\n"` message, then confirms the stream reaches end-of-file. Two different mechanisms, two different guarantees — the virtual clock proves the handler's logic; the real socket proves the whole pipeline actually closes a real connection.
 
-## Recovering: a client that reconnects itself
+### Recovering: a client that reconnects itself
 
 ```java
 @Override
@@ -104,7 +104,7 @@ private void scheduleReconnect() {
 
 This lab uses a fixed backoff for clarity. A production client would typically add jitter and a growing delay to avoid many clients reconnecting in lockstep against a recovering server — noted here as a real gap, not implemented, to keep the lesson focused on the retry mechanism itself.
 
-## What's proven, what's not
+### What's proven, what's not
 
 | Test | Proves |
 | --- | --- |
@@ -112,7 +112,7 @@ This lab uses a fixed backoff for clarity. A production client would typically a
 | `realSocketIdleTimeoutClosesTheConnection` | The same logic closes a real connection after a real elapsed timeout |
 | `reconnectingClientRetriesAfterEachDisconnect` | The client detects disconnection and retries repeatedly, not just once |
 
-## Run the lab
+### Run the lab
 
 ```sh
 make netty-lifecycle
@@ -132,13 +132,13 @@ idle-timeout
 
 followed by the connection closing.
 
-## Exercises
+### Exercises
 
 1. Set `readerIdleTime` instead of `allIdleTime` and send one byte just before the timeout. Does the connection survive, and why does that differ from `allIdleTime`?
 2. Remove `.addListener(ChannelFutureListener.CLOSE)` and call `ctx.close()` directly instead. Design a scenario where the client might not receive `"idle-timeout\n"`.
 3. Add jitter to `ReconnectingClient`'s backoff and adjust the test's polling deadline to account for the added variance.
 4. `reconnectingClientRetriesAfterEachDisconnect` uses a server that closes every connection immediately. Change it to close only the first two connections and keep the third open — what does the test need to assert differently?
 
-## What's next
+### What's next
 
 These four labs cover a single connection end to end: accept it, frame its messages, respect its capacity, and outlive its failures. Later topics build multi-connection concerns — routing, connection pooling, and protocol-specific patterns — on top of this foundation.

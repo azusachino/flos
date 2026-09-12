@@ -13,7 +13,7 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/state/savepoints/
 ---
 
-# Flink Recovery, Upgrade, and Rescaling
+## Flink Recovery, Upgrade, and Rescaling
 
 Stateful maintenance has two independent correctness boundaries:
 
@@ -24,7 +24,7 @@ external boundary source retention + sink writes + downstream effects
 
 Restoring Flink state does not erase output already committed to an external system.
 
-## Checkpoint versus savepoint
+### Checkpoint versus savepoint
 
 | Property | Checkpoint | Savepoint |
 | --- | --- | --- |
@@ -34,7 +34,7 @@ Restoring Flink state does not erase output already committed to an external sys
 | Optimization | Fast recurring snapshots and restore | Portability or native speed depending on format |
 | Normal SOP use | Recover a failed job | Establish a controlled change boundary |
 
-## Recovery drill
+### Recovery drill
 
 Start with the repository's executable [Checkpoint and Recovery Lab](../../concepts/flink/state/checkpoint-recovery.md). It proves task restart and in-memory checkpoint restoration in an embedded MiniCluster. For the external Kafka/MySQL procedure and its evidence boundary, use the [Flink Failure and Recovery Drill](failure-recovery-drill.md).
 
@@ -64,7 +64,7 @@ recoveryDrill:
     duplicateRows: 0
 ```
 
-## Savepoint restore test
+### Savepoint restore test
 
 The executable [Savepoint Upgrade and Rescaling Lab](../../concepts/flink/state/savepoint-upgrade.md) proves this flow locally with a canonical savepoint and a parallelism change from one to two.
 
@@ -90,7 +90,7 @@ Verify:
 - checkpoints resume under the new revision
 - sink output remains correct
 
-## State compatibility review
+### State compatibility review
 
 | Change | Default posture |
 | --- | --- |
@@ -105,7 +105,7 @@ Verify:
 | Remove stateful operator | Explicit state disposal decision |
 | Use `--allowNonRestoredState` | Explicitly authorize state loss |
 
-## Application upgrade
+### Application upgrade
 
 ```mermaid
 flowchart LR
@@ -122,7 +122,7 @@ flowchart LR
 
 Prefer one active processing timeline. Shadow deployments require an explicit plan for source ownership and duplicate sink effects.
 
-## Flink framework upgrade
+### Flink framework upgrade
 
 1. Read the compatibility notes for the exact source and target versions.
 2. Pin connector and Java compatibility.
@@ -136,7 +136,7 @@ Prefer one active processing timeline. Shadow deployments require an explicit pl
 
 Changing Flink versions without a state restore test is not a normal rolling binary replacement.
 
-## Kubernetes Operator upgrade
+### Kubernetes Operator upgrade
 
 The Operator, its CRDs, and running FlinkDeployments have separate lifecycles.
 
@@ -165,7 +165,7 @@ Then:
 
 Do not combine an Operator upgrade, Flink runtime upgrade, job-code upgrade, and state migration into one unobservable change.
 
-## Rescaling
+### Rescaling
 
 Rescaling changes the distribution of keyed state.
 
@@ -203,7 +203,7 @@ business totals unchanged
 
 Increasing parallelism does not repair a bad key. One high-volume user remains one key and therefore belongs to one keyed subtask unless the business aggregation is redesigned.
 
-## Rollback and external reconciliation
+### Rollback and external reconciliation
 
 If the new revision emitted output before rollback:
 
@@ -227,7 +227,7 @@ WHERE user_id = ?
 
 The exact conflict rule belongs to the billing contract and database.
 
-## Official references
+### Official references
 
 - [Savepoints](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/state/savepoints/)
 - [Checkpoints](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/state/checkpoints/)

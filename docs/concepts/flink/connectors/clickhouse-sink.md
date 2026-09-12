@@ -14,7 +14,7 @@ tags:
 source: https://github.com/ClickHouse/flink-connector-clickhouse
 ---
 
-# Flink ClickHouse Sink Tutorial
+## Flink ClickHouse Sink Tutorial
 
 This is the first executable lesson in the ClickHouse track. A bounded Flink
 job creates five typed events and writes them through the official ClickHouse
@@ -31,7 +31,7 @@ executor alive. A long-running Flink deployment must validate connector
 shutdown behavior separately; this `System.exit` is not a production cleanup
 strategy.
 
-## Run the lesson
+### Run the lesson
 
 From `vendor/flos/`:
 
@@ -63,7 +63,7 @@ make clickhouse-down
 podman volume rm clickhouse_clickhouse-sink-data
 ```
 
-## Follow one event through the code
+### Follow one event through the code
 
 The path is deliberately short:
 
@@ -91,7 +91,7 @@ That is an intentionally observable append-only table. Running the same
 bounded job again writes the same event identities again. A retry can therefore
 be accepted by ClickHouse even when the client did not receive the response.
 
-## Change one knob
+### Change one knob
 
 The job keeps the connector limits as named constants so the experiment is
 easy to locate:
@@ -117,7 +117,7 @@ This loads 10,000 deterministic rows into `learning.workload_events` and
 compares user-plus-time, order, symbol-plus-time, and date-range filters. It is
 a local comparison harness, not a capacity claim.
 
-## What to learn next
+### What to learn next
 
 - [Sink deep dive and tuning decisions](../../../operations/flink/clickhouse-sink-deepdive.md)
   explains formats, buffering, retry ambiguity, and evidence levels.
@@ -130,7 +130,7 @@ a local comparison harness, not a capacity claim.
 - [Local benchmark baseline](../../../operations/flink/clickhouse-benchmark-baseline.md)
   records the first sort-key and replay measurements.
 
-## Official reading
+### Official reading
 
 - [ClickHouse Flink connector](https://github.com/ClickHouse/flink-connector-clickhouse)
   — connector API and supported conversion paths.

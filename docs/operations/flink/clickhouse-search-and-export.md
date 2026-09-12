@@ -14,13 +14,13 @@ tags:
 source: https://clickhouse.com/docs/interfaces/http
 ---
 
-# ClickHouse Search, Clients, and CSV Exports
+## ClickHouse Search, Clients, and CSV Exports
 
 This guide is for the query/API engineer and export/workflow engineer. It
 starts from four user-visible filters and refuses to treat a CSV request as
 just another interactive query.
 
-## Define the query contract
+### Define the query contract
 
 Every endpoint should specify:
 
@@ -41,7 +41,7 @@ maximum rows/bytes, and cancellation. The ClickHouse client owns protocol and
 compression details. The table owns pruning; do not hide a sort-key problem in
 the client.
 
-## HTTP versus native protocol
+### HTTP versus native protocol
 
 Start with the HTTP interface for the tutorial and service boundary because it
 is easy to inspect, proxy, and stream. Compare the native protocol when
@@ -68,7 +68,7 @@ Never interpolate user values into SQL. Bind them using the selected client's
 parameter facility and emit a query ID that lets operators correlate API logs
 with `system.query_log`.
 
-## CSV is a workflow, not a button
+### CSV is a workflow, not a button
 
 An export path should look like:
 
@@ -92,7 +92,7 @@ been authorized and bounded. Do not let a browser request hold an unbounded
 HTTP connection while it scans the entire fact store. Queue large jobs and
 give them a separate resource budget from interactive search.
 
-## Contention experiment
+### Contention experiment
 
 Run the executable local case:
 
@@ -114,7 +114,7 @@ The result decides whether quotas are sufficient or whether independent read
 compute is required. It is not safe to infer isolation from a quiet local
 server.
 
-## Cases that change the API design
+### Cases that change the API design
 
 - **Duplicate rows:** expose a documented identity/version policy; do not
   silently add `FINAL` to every query.
@@ -132,7 +132,7 @@ The case harness also proves a narrower CSV contract: an export with a fixed
 are inserted. That is a snapshot boundary chosen by the workflow, not a claim
 that ClickHouse provides a full transaction snapshot for arbitrary exports.
 
-## Reading
+### Reading
 
 - [ClickHouse HTTP interface](https://clickhouse.com/docs/interfaces/http)
 - [ClickHouse async inserts](https://clickhouse.com/docs/optimize/asynchronous-inserts)

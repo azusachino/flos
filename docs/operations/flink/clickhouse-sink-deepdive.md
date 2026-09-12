@@ -15,7 +15,7 @@ tags:
 source: https://github.com/ClickHouse/flink-connector-clickhouse
 ---
 
-# ClickHouse Sink Lab: Specification and Tuning Decisions
+## ClickHouse Sink Lab: Specification and Tuning Decisions
 
 The first implementation is now runnable. The design remains deliberately
 experimental where the evidence is local or bounded; production choices still
@@ -27,7 +27,7 @@ existing Kafka-to-MySQL billing pipeline so that sink behavior can be learned
 without mixing in event-time windows, JDBC transactions, or the billing
 domain.
 
-## Scope
+### Scope
 
 The learning track now includes a small executable lab plus role-based guides:
 
@@ -54,7 +54,7 @@ The change will not:
 - claim production-ready ClickHouse settings from a toy workload;
 - add a generic sink abstraction for future databases.
 
-## Target workload to explore
+### Target workload to explore
 
 The learning track must be able to reason about this target, without claiming
 that a local laptop proves it:
@@ -74,7 +74,7 @@ time span, result-set size, and concurrent request count separately. A row
 count copied from production without its distributions is not a useful sizing
 workload.
 
-## Role-based learning track
+### Role-based learning track
 
 One page can explain the sink API. It cannot teach the system. The completed
 track should have these reading paths:
@@ -94,7 +94,7 @@ The artifacts should cross-link to one glossary and one evidence table. Each
 recommendation must say whether it is a ClickHouse invariant, a workload
 assumption, a measured result, or an unverified production hypothesis.
 
-## Architecture decision path
+### Architecture decision path
 
 Compute/storage separation is an architecture choice before it is a server
 setting. The track will compare two explicit options:
@@ -114,7 +114,7 @@ if data residency, control, or cost makes it necessary. The decision record
 must capture storage cost, cache warm-up, ingest scale-up, query scale-up,
 failure recovery, export isolation, and operational ownership.
 
-## Data-model candidates, not premature conclusions
+### Data-model candidates, not premature conclusions
 
 There is no single `ORDER BY` that makes all four access paths equally strong.
 The benchmark should begin with a base table candidate such as:
@@ -142,7 +142,7 @@ baseline query shows the base sort order is insufficient.
 The guide will also cover numeric ID types, `DateTime64`, symbol cardinality,
 `LowCardinality`, nullable columns, codecs, TTL, and the cost of wide rows.
 
-## Exploration and decision loop
+### Exploration and decision loop
 
 Every server, client, and sink choice follows the same loop:
 
@@ -165,7 +165,7 @@ columns, bounded results, and keyset pagination. CSV generation should be a
 streaming or queued workflow with a separate resource budget, not a giant
 interactive request.
 
-## Configuration surface to explore
+### Configuration surface to explore
 
 The guides will keep these layers separate:
 
@@ -182,7 +182,7 @@ The first sink lab will set only connector values. It will not pretend that a
 sink batch setting can solve a bad table key, an undersized compute pool, or an
 unbounded CSV request.
 
-## Additional cases to fold into the track
+### Additional cases to fold into the track
 
 These cases deserve explicit experiments because they can change the table
 engine, ingestion contract, or deployment shape. They are ordered by priority.
@@ -209,7 +209,7 @@ The P0 cases are part of the first architecture decision. P1 cases become
 release-readiness gates. P2 cases are allowed to remain separate until a real
 product requirement appears.
 
-### Correctness cases
+#### Correctness cases
 
 The track must distinguish three different questions:
 
@@ -228,7 +228,7 @@ as a generic replacement for an ingestion correctness protocol. ClickHouse
 describes lightweight deletes as read-time masks that are physically cleaned
 later, which makes merge pressure and cleanup timing part of the decision.
 
-### Shape and skew cases
+#### Shape and skew cases
 
 The benchmark must include more than uniform random data:
 
@@ -243,7 +243,7 @@ These cases reveal whether a design is limited by primary-index pruning, a hot
 part, merge debt, memory, admission control, object-storage latency, or simply
 an API contract that permits an unsafe query.
 
-### Operational cases
+#### Operational cases
 
 The operations guide must include dashboards and alerts for query p95/p99,
 read bytes, rejected/queued queries, insert failures, sink buffer depth,
@@ -253,7 +253,7 @@ interactive queries, but the current ClickHouse guidance notes that separate
 compute is stronger isolation because CPU scheduling does not cover every
 background activity such as merges and mutations.
 
-## Proposed topology
+### Proposed topology
 
 ```text
 bounded Flink source
@@ -283,7 +283,7 @@ visible as an append, so retries and duplicates remain observable. The guide
 will compare this with `ReplacingMergeTree` and explain why that is a separate
 deduplication design rather than a substitute for delivery guarantees.
 
-## Decisions to implement
+### Decisions to implement
 
 | Decision | Choice | Why | Boundary |
 | --- | --- | --- | --- |
@@ -296,7 +296,7 @@ deduplication design rather than a substitute for delivery guarantees.
 | Delivery claim | At-least-once / duplicates possible | The connector documents no exactly-once semantics and retries can replay accepted writes | A business key and reconciliation query are required for production use |
 | Runtime | One disposable ClickHouse container plus a local packaged Flink job | Smallest real network path that proves the sink reaches ClickHouse | This is a smoke test, not a distributed Flink HA test |
 
-## Initial tuning profile
+### Initial tuning profile
 
 These are teaching defaults chosen to make the buffering controls visible on a
 small local workload. They are not production recommendations:
@@ -315,7 +315,7 @@ end-to-end latency, ClickHouse inserted rows, failed requests, and duplicate
 counts. It will explain why increasing all six values at once is not a useful
 experiment: the cause of an improvement or regression would be unknowable.
 
-## Tutorial contract
+### Tutorial contract
 
 The [Flink ClickHouse Sink Tutorial](../../concepts/flink/connectors/clickhouse-sink.md)
 lets a learner complete this loop:
@@ -338,7 +338,7 @@ Every command must use a repository Make target or a documented command owned
 by the module. The tutorial must label local build evidence, runtime smoke
 evidence, and production guidance separately.
 
-## Deep-dive contract
+### Deep-dive contract
 
 This guide answers:
 
@@ -359,7 +359,7 @@ This guide answers:
 The guide will include a small failure/replay thought experiment rather than
 pretending that the local bounded smoke proves distributed recovery.
 
-## Verification criteria
+### Verification criteria
 
 The implementation is complete only when all of these are true:
 
@@ -375,7 +375,7 @@ The implementation is complete only when all of these are true:
 - The tutorial and deep dive do not describe the smoke test as an HA,
   checkpoint-restore, or exactly-once acceptance test.
 
-## Learning resources
+### Learning resources
 
 The final tutorial will link these primary resources with a short note about
 what to read and why:
@@ -403,7 +403,7 @@ what to read and why:
 - [ClickHouse Academy](https://learn.clickhouse.com/)
   — structured lessons for SQL, data modeling, and operating ClickHouse.
 
-## Review questions
+### Review questions
 
 Before implementation, confirm these choices:
 

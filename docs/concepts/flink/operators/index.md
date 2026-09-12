@@ -15,7 +15,7 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/datastream/operators/overview/
 ---
 
-# Operators
+## Operators
 
 An operator transforms one or more data streams into a new stream. A chain of operators describes the logical dataflow; Flink decides how that dataflow becomes tasks distributed across available slots.
 
@@ -26,14 +26,14 @@ The initial lab uses:
 3. `keyBy` to partition purchases by customer.
 4. `reduce` to maintain each customer's running spend.
 
-## Read the implementation
+### Read the implementation
 
 - `ValidPurchaseFilter` demonstrates one-input-to-zero-or-one-output behavior.
 - `NormalizePurchase` demonstrates one-input-to-one-output behavior.
 - `RunningSpend` demonstrates incremental keyed aggregation.
 - `OperatorLabJob` assembles the transformations into an executable topology.
 
-## Verify the semantics
+### Verify the semantics
 
 ```sh
 make concept-test CONCEPT=flink

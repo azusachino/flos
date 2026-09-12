@@ -14,7 +14,7 @@ tags:
 source: https://clickhouse.com/resources/engineering/high-concurrency-sizing-user-analytics
 ---
 
-# ClickHouse Capacity and Benchmark Decision Record
+## ClickHouse Capacity and Benchmark Decision Record
 
 This is the performance engineer and platform/SRE worksheet. It prevents a
 10B-row target from turning into a server-size guess.
@@ -23,7 +23,7 @@ The first measured local result is recorded in the [ClickHouse local benchmark
 baseline](clickhouse-benchmark-baseline.md). Treat it as a starting point, not
 as a production sizing result.
 
-## Freeze the workload
+### Freeze the workload
 
 Before comparing configurations, record:
 
@@ -48,7 +48,7 @@ It is useful for learning query shape, not for capacity. Scale rows and
 distributions independently in the real benchmark; copying 10B uniform rows
 does not reproduce a 10B-row production workload.
 
-## Change one variable
+### Change one variable
 
 Run a baseline, then change exactly one of:
 
@@ -73,7 +73,7 @@ Capture:
 Cold-cache and warm-cache runs are separate results. A cache-only victory is
 not a durable architecture decision.
 
-## Minimum case matrix
+### Minimum case matrix
 
 | Case | Baseline question | Promotion evidence |
 | --- | --- | --- |
@@ -89,7 +89,7 @@ P0 cases are architecture gates. Corrections, retention, authorization,
 upgrade/rollback, and backups are release-readiness gates. Full-text search and
 cost/egress refinements can remain separate until required by the product.
 
-## Decision record template
+### Decision record template
 
 ```text
 Decision:
@@ -115,7 +115,7 @@ Use “hypothesis” until the evidence level is at least the environment where
 the decision will operate. A local smoke is strong evidence for wiring and weak
 evidence for capacity.
 
-## Operational ownership
+### Operational ownership
 
 The dashboard and alerts should cover query p95/p99, rejected and queued
 queries, insert failures, sink buffer depth, duplicate rate, active parts,
@@ -123,7 +123,7 @@ merge and mutation backlog, cache behavior, object-storage errors, and export
 queue age. Name who responds to each signal and what evidence must be retained
 after an incident.
 
-## Reading
+### Reading
 
 - [ClickHouse query optimization](https://clickhouse.com/resources/engineering/clickhouse-query-optimisation-definitive-guide)
 - [ClickHouse workload scheduling](https://clickhouse.com/docs/operations/workload-scheduling)

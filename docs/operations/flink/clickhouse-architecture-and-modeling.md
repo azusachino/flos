@@ -14,7 +14,7 @@ tags:
 source: https://clickhouse.com/docs/engines/table-engines/mergetree-family
 ---
 
-# ClickHouse Architecture and MergeTree Modeling
+## ClickHouse Architecture and MergeTree Modeling
 
 This guide is for the data architect and data modeler. The target is a fact
 store with 10B+ mostly append-only records, interactive searches by user,
@@ -24,7 +24,7 @@ The central rule is to decide topology, table layout, and correctness as three
 separate decisions. A compute/storage-separated deployment does not rescue a
 sort key that cannot prune the user's queries.
 
-## Decide the topology first
+### Decide the topology first
 
 Compare these options with the same workload:
 
@@ -51,7 +51,7 @@ The isolation boundary must be tested. Workload scheduling can limit query
 resources, but it does not automatically isolate every background activity,
 including merges and mutations.
 
-## Start with a boring fact table
+### Start with a boring fact table
 
 The benchmark's first candidate is:
 
@@ -86,7 +86,7 @@ Compare this with a symbol-first key only after measuring the actual query
 mix. Add projections or skipping indexes after a baseline query demonstrates a
 pruning gap. Every extra structure consumes storage and merge work.
 
-## Choose the correction model explicitly
+### Choose the correction model explicitly
 
 The sink lesson uses immutable `event_id` values and plain `MergeTree`, so
 duplicates remain visible. Production facts need one of these contracts:
@@ -102,7 +102,7 @@ No table engine turns an ambiguous client timeout into exactly-once delivery.
 Keep an immutable business identity and a reconciliation query even when a
 replacement engine is selected.
 
-## Modeling exercises
+### Modeling exercises
 
 Run the local harness, then change one dimension at a time:
 
@@ -142,7 +142,7 @@ Record each result as a decision, not as a new default. The minimum evidence
   is query latency, rows read, bytes read, selected marks, memory, CPU, active
   parts, merge backlog, and cost or resource usage.
 
-## Reading
+### Reading
 
 - [MergeTree family](https://clickhouse.com/docs/engines/table-engines/mergetree-family)
 - [ReplacingMergeTree](https://clickhouse.com/docs/engines/table-engines/mergetree-family/replacingmergetree)

@@ -14,7 +14,7 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/connectors/datastream/kafka/
 ---
 
-# 16-partition Kafka Billing Pipeline
+## 16-partition Kafka Billing Pipeline
 
 The earlier labs use in-memory sources so one concept can be observed at a time. This acceptance path runs the same five-minute billing model across actual service boundaries:
 
@@ -38,7 +38,7 @@ make flink-down
 
 The acceptance command requires Podman and permission to access its local VM.
 
-## Verified result
+### Verified result
 
 The live repository acceptance produced:
 
@@ -60,7 +60,7 @@ This is runtime evidence, not an inference from configuration:
 - Audit fee minus too-late fee minus report fee was exactly `0.00`; the count delta was `0`.
 - The verifier canceled the unbounded job and deleted its temporary topic.
 
-## Keep the four coordinates separate
+### Keep the four coordinates separate
 
 An incoming wire event is:
 
@@ -103,7 +103,7 @@ new OrderEvent(
 
 Kafka offsets are checkpointed by the connector. The monotonic sequence remains useful for detecting producer gaps, duplicates, or reordering, but it does not replace the connector offset.
 
-## Why derive the partition from Kafka
+### Why derive the partition from Kafka
 
 The wire payload does not claim its own partition. `OrderEventKafkaDeserializationSchema` reads the authoritative value from `ConsumerRecord.partition()`:
 
@@ -125,7 +125,7 @@ public void deserialize(
 
 Trusting a duplicated payload field would allow the producer to disagree with Kafka's actual placement.
 
-## Sixteen partitions versus Flink parallelism
+### Sixteen partitions versus Flink parallelism
 
 The topic has 16 partitions while the local job has source parallelism 2:
 
@@ -155,7 +155,7 @@ Increasing source parallelism beyond available task slots prevents scheduling. I
 
 After the source, `keyBy(customerId)` performs a separate network partitioning for keyed window state. Kafka partition assignment and keyed-state ownership are related only through the records they carry.
 
-## Fixture data
+### Fixture data
 
 The fixture producer creates a unique topic and explicitly targets every partition:
 
@@ -192,7 +192,7 @@ The next-window events remain open and are not part of the verified report.
 
 The staged correction and reconciliation behavior is explained in [Late Data Correction and Reconciliation](../event-time/late-data-reconciliation.md).
 
-## Watermarks across partitions
+### Watermarks across partitions
 
 The job uses bounded out-of-orderness plus idleness:
 
@@ -222,7 +222,7 @@ Without those later events, the unbounded job would correctly keep the 12:00 win
 
 Idleness prevents a genuinely quiet partition from holding the global watermark forever. The timeout is a business and operational choice: marking an input idle too aggressively can make a later record late.
 
-## Idempotent report sink
+### Idempotent report sink
 
 The MySQL table uses the report's natural identity:
 
@@ -250,7 +250,7 @@ The connector is configured for at-least-once delivery. Rewriting the same compl
 
 This does not make every possible billing sink exactly-once. Append-only invoices, downstream notifications, or incremental `total = total + delta` updates require a different transactional or deduplication contract.
 
-## What the verifier checks
+### What the verifier checks
 
 `scripts/flink_billing_smoke.py`:
 
@@ -270,7 +270,7 @@ This does not make every possible billing sink exactly-once. Append-only invoice
 
 The unique topic and group make repeated executions independent.
 
-## Evidence boundary
+### Evidence boundary
 
 This acceptance proves real connector wiring, topic partition coverage, event-time window closure, keyed aggregation, correction upserts, too-late routing, and exact source-to-sink balance in the controlled local Compose fixture.
 
@@ -284,14 +284,14 @@ It does not yet prove:
 
 The next milestone adds concrete exported metrics, dashboards, and alert rules.
 
-## Source files
+### Source files
 
 - [`BillingPipelineJob.java`](https://github.com/azusachino/flos/blob/main/modules/flink/pipeline-lab/src/main/java/io/github/azusachino/flos/flink/pipeline/BillingPipelineJob.java)
 - [`OrderEventKafkaDeserializationSchema.java`](https://github.com/azusachino/flos/blob/main/modules/flink/pipeline-lab/src/main/java/io/github/azusachino/flos/flink/pipeline/OrderEventKafkaDeserializationSchema.java)
 - [`BillingFixtureProducer.java`](https://github.com/azusachino/flos/blob/main/modules/flink/pipeline-lab/src/main/java/io/github/azusachino/flos/flink/pipeline/BillingFixtureProducer.java)
 - [`flink_billing_smoke.py`](https://github.com/azusachino/flos/blob/main/scripts/flink_billing_smoke.py)
 
-## Official references
+### Official references
 
 - [Kafka connector](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/connectors/datastream/kafka/)
 - [Generating watermarks](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/datastream/event-time/generating_watermarks/)

@@ -14,7 +14,7 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/datastream/fault-tolerance/state/
 ---
 
-# Keyed State TTL and Backend Choice
+## Keyed State TTL and Backend Choice
 
 Every prior Flink lab in this project keeps state forever, for the lifetime of the job. Real keyed state usually shouldn't: an abandoned shopping cart, an idle session, a stale join buffer all need to expire on their own. This lab's only questions are:
 
@@ -29,7 +29,7 @@ flowchart LR
     ReadToo --> Expiry
 ```
 
-## Source code map
+### Source code map
 
 The example is not only documentation. Its complete source is under `modules/flink/state-ttl-lab`:
 
@@ -40,7 +40,7 @@ The example is not only documentation. Its complete source is under `modules/fli
 | [`StateTtlLabJob.java`](https://github.com/azusachino/flos/blob/main/modules/flink/state-ttl-lab/src/main/java/io/github/azusachino/flos/flink/state/StateTtlLabJob.java) | Selects the state backend entirely through `Configuration`, not a fluent API call |
 | [`StateTtlLabTest.java`](https://github.com/azusachino/flos/blob/main/modules/flink/state-ttl-lab/src/test/java/io/github/azusachino/flos/flink/state/StateTtlLabTest.java) | Proves accumulation, expiry, both update types side by side, and backend equivalence |
 
-## Reading state is what triggers expiry
+### Reading state is what triggers expiry
 
 ```java
 CartTotal current = cartState.value();
@@ -49,7 +49,7 @@ boolean startedNewOrExpiredCart = current == null;
 
 `value()` is not a passive getter. Internally, Flink compares this entry's last-access timestamp against the configured TTL _at the moment you call it_, using `System.currentTimeMillis()` by default. A `null` result means one of two things: this customer has never purchased, or their previous cart's TTL had already elapsed. The function can't tell which, and doesn't need to — either way, the correct behavior is to start a new cart.
 
-## Update type: does a read count as activity?
+### Update type: does a read count as activity?
 
 ```java
 StateTtlConfig.newBuilder(Duration.ofMillis(400))
@@ -76,11 +76,11 @@ sequenceDiagram
 
 Neither answer is "more correct." `OnCreateAndWrite` is right when only genuine writes should count as activity — a truly idle cart should expire even if something keeps polling it. `OnReadAndWrite` is right when access itself is a signal of continued interest, like a session that should stay alive as long as someone is still looking at it.
 
-## A test detail worth noticing: where the sleep lives
+### A test detail worth noticing: where the sleep lives
 
 The activities in this lab carry a `delayBeforeMillis`, applied inside `CartTotalFunction.processElement` immediately before the state is touched — not inside the source before an event is emitted. A `keyBy` sits between the two, and that shuffle can buffer and batch records; a source that sleeps between `collect()` calls does not reliably reproduce the same wall-clock gap at the point TTL is actually evaluated downstream. Sleeping exactly where the TTL check happens removes that uncertainty entirely. This is the same lesson as the [Netty backpressure lab](../../netty/backpressure.md) from a different angle: proving a real-time property requires controlling time at the place the property is actually checked, not somewhere upstream of it.
 
-## Two corners worth checking explicitly
+### Two corners worth checking explicitly
 
 `probeOnAnUnknownCustomerNeverCreatesState` probes a customer who has never purchased anything, immediately followed by a real purchase. If a probe ever accidentally called `update()` — a plausible bug, since `processElement` always reads `cartState.value()` first regardless of activity type — the purchase would find that phantom entry and treat itself as a continuation. It doesn't: the purchase still reports `startedNewOrExpiredCart = true`, confirming a probe is genuinely read-only, not just "usually harmless."
 
@@ -98,7 +98,7 @@ sequenceDiagram
 
 Alice's cart correctly expires from her own 350ms gap despite bob's write landing in between; bob's cart correctly survives from his own 250ms gap despite alice's expiry happening around it. Flink's keyed state is scoped per key by construction, so this isn't proving Flink works — it's a regression guard against this specific job accidentally sharing a clock or a descriptor across keys.
 
-## Visibility: what a stale value looks like before cleanup
+### Visibility: what a stale value looks like before cleanup
 
 ```java
 .neverReturnExpired()          // value() returns null once TTL has logically passed
@@ -107,7 +107,7 @@ Alice's cart correctly expires from her own 350ms gap despite bob's write landin
 
 This lab always configures `neverReturnExpired()`, because it wants `value()` to answer "is this cart still alive?" truthfully at read time. `returnExpiredIfNotCleanedUp()` exists for the opposite case: when a slightly stale read is an acceptable trade for avoiding the cost of checking expiry on every single access — the value can still be logically expired, just not yet removed from the backend's storage.
 
-### The gotcha: this changes program behavior, not just an internal detail
+#### The gotcha: this changes program behavior, not just an internal detail
 
 `returnExpiredIfNotCleanedUpKeepsStaleValueVisibleToTheApplication` swaps only the visibility setting in the otherwise-identical expiry test, and the result is wrong from the application's point of view:
 
@@ -124,7 +124,7 @@ var ttlConfig =
 
 There is no fix available at the `ValueState<T>` call site — the public API returns only the user value, never the wrapping `TtlValue`'s timestamp, so a caller has no way to distinguish "genuinely alive" from "expired but not yet swept" once it has opted into seeing expired values. Choosing `returnExpiredIfNotCleanedUp()` is a deliberate trade a caller makes only when the application logic does not depend on knowing which case it is in.
 
-## The same logic behind two backends
+### The same logic behind two backends
 
 ```java
 var configuration = new Configuration();
@@ -144,7 +144,7 @@ Flink 2.x removed the fluent `env.setStateBackend(...)` call entirely; the backe
 
 The test proves the two backends are _logically_ interchangeable for this job — same TTL semantics, same accumulation, same expiry behavior. It does not, and cannot, prove they perform the same; that trade-off is an operational decision made from state size and latency requirements, not something a unit test verifies.
 
-## What's proven, what's not
+### What's proven, what's not
 
 | Test | Proves |
 | --- | --- |
@@ -159,7 +159,7 @@ The test proves the two backends are _logically_ interchangeable for this job �
 
 All eight tests use real `Thread.sleep` rather than a virtual clock: Flink's default `TtlTimeProvider` is `System::currentTimeMillis`, with no public hook to mock it, so a short bounded real wait is the honest way to prove this boundary — the same trade-off this project already made for [Netty's connection lifecycle lab](../../netty/connection-lifecycle.md).
 
-## Run the lab
+### Run the lab
 
 ```sh
 make flink-state-ttl
@@ -173,13 +173,13 @@ CartSnapshot[customerId=alice, total=25.00, count=2, startedNewOrExpiredCart=fal
 CartSnapshot[customerId=alice, total=5.00, count=1, startedNewOrExpiredCart=true]
 ```
 
-## Exercises
+### Exercises
 
 1. Change the lab's TTL from 300ms to 600ms and predict whether the final purchase still starts a new cart.
 2. `returnExpiredIfNotCleanedUpKeepsStaleValueVisibleToTheApplication` proves the bug exists. Fix `CartTotalFunction` so it behaves correctly under either visibility setting — you cannot ask `ValueState<T>` for the entry's timestamp, so the fix has to live in what the application itself stores.
 3. `keyedStateIsIsolatedAcrossCustomers` uses two keys. Extend it to three, with each customer's expiry boundary landing at a different point in the schedule, and confirm all three are still judged independently.
 4. `CartTotalFunction` never configures any TTL cleanup strategy (incremental cleanup, RocksDB compaction filter). Look up `StateTtlConfig.Builder.cleanupIncrementally` and explain what silently keeps expired-but-unread entries occupying memory or disk without it.
 
-## What's next
+### What's next
 
 This lab proves keyed state TTL against two backends, in isolation from checkpointing. The [checkpoint recovery lab](checkpoint-recovery.md) and [savepoint upgrade lab](savepoint-upgrade.md) prove the complementary half: that state survives a restart or a rescale at all. A production job needs both properties at once.

@@ -13,11 +13,11 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/metrics/
 ---
 
-# Flink Observability and Incident Response
+## Flink Observability and Incident Response
 
 Flink exposes runtime health, but business correctness needs its own signals. A `RUNNING` job can still produce no reports, drop late orders, duplicate sink writes, or accumulate state indefinitely.
 
-## Observability layers
+### Observability layers
 
 ```mermaid
 flowchart TB
@@ -30,7 +30,7 @@ flowchart TB
 
 An alert should identify its layer and link to a runbook.
 
-## Repository observability stack
+### Repository observability stack
 
 The local environment now makes the monitoring path executable:
 
@@ -73,7 +73,7 @@ The environment variable moves the reporter JAR shipped in the Flink image from 
 
 Prometheus scrapes `jobmanager:9249` and `taskmanager:9249` every five seconds. These service names work inside the Compose network; production service discovery should match the deployment platform.
 
-### Executable acceptance contract
+#### Executable acceptance contract
 
 `scripts/flink_observability_smoke.py` queries the real APIs and requires:
 
@@ -100,9 +100,9 @@ audit count - too-late count - report count = 0
 
 Prometheus health does not substitute for that ledger reconciliation.
 
-## Minimum dashboard
+### Minimum dashboard
 
-### Availability
+#### Availability
 
 - FlinkDeployment reconciliation state
 - job status
@@ -110,7 +110,7 @@ Prometheus health does not substitute for that ledger reconciliation.
 - registered versus expected TaskManagers
 - running versus expected subtasks
 
-### Traffic
+#### Traffic
 
 - source records in
 - operator records in/out
@@ -118,7 +118,7 @@ Prometheus health does not substitute for that ledger reconciliation.
 - Kafka consumer lag per partition
 - sink request latency and errors
 
-### Event time
+#### Event time
 
 - `currentInputWatermark`
 - `currentOutputWatermark`
@@ -127,7 +127,7 @@ Prometheus health does not substitute for that ledger reconciliation.
 - reconciliation/side-output records
 - end-to-end business report delay
 
-### Task activity
+#### Task activity
 
 - `busyTimeMsPerSecond`
 - `idleTimeMsPerSecond`
@@ -135,7 +135,7 @@ Prometheus health does not substitute for that ledger reconciliation.
 - per-subtask CPU and memory
 - network buffer usage
 
-### State and recovery
+#### State and recovery
 
 - managed state size per operator/subtask
 - completed and failed checkpoints
@@ -144,7 +144,7 @@ Prometheus health does not substitute for that ledger reconciliation.
 - barrier/alignment contribution where applicable
 - recovery duration
 
-### Platform
+#### Platform
 
 - JobManager and TaskManager restarts
 - Kubernetes pending/evicted/OOMKilled pods
@@ -152,7 +152,7 @@ Prometheus health does not substitute for that ledger reconciliation.
 - disk, network, memory, and CPU pressure
 - certificate, credential, and quota failures
 
-## Alert examples
+### Alert examples
 
 The repository loads these concrete rules from `environments/flink/observability/flink-alerts.yml`.
 
@@ -182,7 +182,7 @@ increase(flink_jobmanager_job_numberOfFailedCheckpoints[10m]) > 0
 
 These initial rules deliberately avoid a fabricated checkpoint-age expression: Flink exposes checkpoint counts and durations, but the repository has not yet added a trustworthy wall-clock timestamp series for “last successful checkpoint.” Add that signal before alerting on staleness.
 
-### Dashboard panels
+#### Dashboard panels
 
 The provisioned `Flink Billing Operations` dashboard is version-controlled JSON:
 
@@ -197,7 +197,7 @@ The provisioned `Flink Billing Operations` dashboard is version-controlled JSON:
 
 The dashboard is a starting operational view, not an SLO. Production labels, cardinality, retention, notification routes, and business dimensions need workload-specific review.
 
-## Symptom triage
+### Symptom triage
 
 | Symptom | First evidence | Do not assume |
 | --- | --- | --- |
@@ -210,13 +210,13 @@ The dashboard is a starting operational view, not an SLO. Production labels, car
 | One hot subtask | per-subtask keys/records/state | Job-wide average is representative |
 | Duplicate output | sink key, retries, replay, source duplicates | Exactly-once exists end to end |
 
-## Runbook: five-minute report does not appear
+### Runbook: five-minute report does not appear
 
-### Detection
+#### Detection
 
 Business report delay exceeds the SLO, while the job may still be `RUNNING`.
 
-### Diagnose
+#### Diagnose
 
 1. Confirm source records are arriving.
 2. Confirm the expected event timestamp and window calculation.
@@ -236,7 +236,7 @@ xh get \
   get=="currentInputWatermark,currentOutputWatermark,numLateRecordsDropped"
 ```
 
-### Mitigate
+#### Mitigate
 
 - Repair a failed dependency or blocked sink.
 - Correct producer timestamp configuration.
@@ -246,7 +246,7 @@ xh get \
 
 Do not advance a watermark manually or increase allowed lateness without deciding the data-correctness consequences.
 
-### Verify
+#### Verify
 
 - watermarks resume
 - the affected window emits
@@ -254,9 +254,9 @@ Do not advance a watermark manually or increase allowed lateness without decidin
 - state begins cleaning up
 - business output reconciles
 
-## Runbook: late records increase
+### Runbook: late records increase
 
-### Diagnose
+#### Diagnose
 
 1. Sample `timestampTs`, Kafka append time, and Flink processing time.
 2. Confirm timestamp unit and timezone.
@@ -266,7 +266,7 @@ Do not advance a watermark manually or increase allowed lateness without decidin
 6. Check whether a formerly idle split reactivated with old events.
 7. Inspect `numLateRecordsDropped` and reconciliation side output.
 
-### Mitigate
+#### Mitigate
 
 Choose one explicit policy:
 
@@ -276,7 +276,7 @@ Choose one explicit policy:
 - route too-late events to reconciliation
 - use an upstream completeness marker
 
-### Verify
+#### Verify
 
 Replay representative out-of-order records and confirm:
 
@@ -294,9 +294,9 @@ audited source - explicitly too late - reported accepted = 0
 
 For billing, verify both fee and event count. A zero count delta with a non-zero money delta is still an incident.
 
-## Runbook: backpressure or lag
+### Runbook: backpressure or lag
 
-### Diagnose
+#### Diagnose
 
 Start downstream and move upstream:
 
@@ -321,7 +321,7 @@ Typical causes:
 - state backend IO
 - external lookup in the hot path
 
-### Mitigate
+#### Mitigate
 
 - repair or scale the actual bottleneck
 - batch/idempotently upsert at the sink
@@ -331,9 +331,9 @@ Typical causes:
 
 Adding source parallelism while the sink is saturated increases pressure rather than capacity.
 
-## Runbook: checkpoint failure or slowdown
+### Runbook: checkpoint failure or slowdown
 
-### Diagnose
+#### Diagnose
 
 1. Identify the first failed checkpoint and error.
 2. Compare checkpoint duration and data size over time.
@@ -343,7 +343,7 @@ Adding source parallelism while the sink is saturated increases pressure rather 
 6. Check backpressure and network buffers.
 7. Check TaskManager memory and state backend logs.
 
-### Mitigate
+#### Mitigate
 
 - restore checkpoint storage access
 - relieve backpressure
@@ -352,14 +352,14 @@ Adding source parallelism while the sink is saturated increases pressure rather 
 - use incremental checkpoints where supported and justified
 - roll back a state-growth regression
 
-### Verify
+#### Verify
 
 - several checkpoints complete
 - failure count stops increasing
 - duration returns within SLO
 - a failure drill can restore the completed checkpoint
 
-## Runbook: restart loop
+### Runbook: restart loop
 
 1. Freeze deployment automation.
 2. Capture job exception, pod termination reason, operator status, and recent changes.
@@ -371,7 +371,7 @@ Adding source parallelism while the sink is saturated increases pressure rather 
 
 Do not repeatedly delete pods without understanding whether each restart reprocesses the same failing record.
 
-## Incident record
+### Incident record
 
 ```yaml
 incident:
@@ -391,7 +391,7 @@ incident:
         - test-idleness-threshold
 ```
 
-## Official references
+### Official references
 
 - [Flink metrics](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/metrics/)
 - [Debugging event time](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/debugging/debugging_event_time/)

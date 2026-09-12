@@ -11,9 +11,9 @@ tags:
   - tooling
 ---
 
-# Setup
+## Setup
 
-## Provision tools
+### Provision tools
 
 ```sh
 mise install
@@ -24,14 +24,14 @@ The required tool versions live in `mise.toml`. Mise is optional for contributor
 
 Examples target Flink 2.2.1. Kubernetes deployment material targets Flink Kubernetes Operator 1.15.0.
 
-## Verify source and documentation
+### Verify source and documentation
 
 ```sh
 make check
 make docs-check
 ```
 
-## Run the Flink lab
+### Run the Flink lab
 
 ```sh
 make flink-up

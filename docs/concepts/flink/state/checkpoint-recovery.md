@@ -13,7 +13,7 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/state/checkpoints/
 ---
 
-# Checkpoint and Recovery Lab
+## Checkpoint and Recovery Lab
 
 The event-time lab proves how events enter clock-aligned windows. This lab answers the next operational question:
 
@@ -29,7 +29,7 @@ make flink-recovery
 
 The test starts an embedded Flink MiniCluster and needs permission to bind local ephemeral ports.
 
-## Workflow
+### Workflow
 
 ```mermaid
 sequenceDiagram
@@ -51,7 +51,7 @@ sequenceDiagram
     Window->>Test: FeeReport(26.50, 4)
 ```
 
-## Why both states matter
+### Why both states matter
 
 Flink restores a consistent snapshot of the entire dataflow:
 
@@ -70,7 +70,7 @@ both restored consistently           -> 26.50 across four events
 
 Kafka uses the same principle at a larger scale: a checkpoint binds Kafka partition offsets to operator state. The `(partition, sequence)` fields in this lab explain source identity, but Flink's checkpointed source offset—not `dto.timestampTs` and not the sequence field—is the recovery cursor.
 
-## Job configuration
+### Job configuration
 
 The lab uses one restart after a fixed zero-duration delay:
 
@@ -94,7 +94,7 @@ The 20-millisecond interval makes the local experiment fast. It is not a recomme
 
 `setMaxParallelism(16)` fixes the number of key groups for this lesson. It does not mean the job runs 16 subtasks, and it is independent of the example's source-partition values.
 
-## Stable operator identities
+### Stable operator identities
 
 State is mapped back to operators by UID:
 
@@ -112,7 +112,7 @@ return environment
 
 Display names can change. Stateful UIDs should be treated as persistent schema identifiers because checkpoints and savepoints use them to find the state belonging to the new job graph.
 
-## Checkpoint-aware source
+### Checkpoint-aware source
 
 The source keeps the next unread list index as operator state:
 
@@ -147,7 +147,7 @@ Waiting matters. A snapshot that started but never completed is not a valid reco
 
 The production Kafka connector already implements checkpoint-aware offset handling. Application code should use the connector rather than reproduce this teaching source.
 
-## What the assertion proves
+### What the assertion proves
 
 ```java
 assertThat(reports)
@@ -174,7 +174,7 @@ The expected total is:
 10.00 + 4.00 + 7.50 + 5.00 = 26.50
 ```
 
-## What it does not prove
+### What it does not prove
 
 This lab does not yet prove:
 
@@ -190,13 +190,13 @@ Those require external checkpoint storage, real connectors, process-level failur
 
 For a planned stateful change rather than an unplanned failure, continue with the [Savepoint Upgrade and Rescaling Lab](savepoint-upgrade.md).
 
-## Source files
+### Source files
 
 - [`CheckpointRecoveryLabJob.java`](https://github.com/azusachino/flos/blob/main/modules/flink/checkpoint-recovery-lab/src/main/java/io/github/azusachino/flos/flink/recovery/CheckpointRecoveryLabJob.java) assembles the job and recovery configuration.
 - [`CheckpointedOrderSource.java`](https://github.com/azusachino/flos/blob/main/modules/flink/checkpoint-recovery-lab/src/main/java/io/github/azusachino/flos/flink/recovery/CheckpointedOrderSource.java) snapshots the input cursor and injects the failure.
 - [`CheckpointRecoveryLabTest.java`](https://github.com/azusachino/flos/blob/main/modules/flink/checkpoint-recovery-lab/src/test/java/io/github/azusachino/flos/flink/recovery/CheckpointRecoveryLabTest.java) verifies the recovered billing result.
 
-## Official references
+### Official references
 
 - [Checkpointing](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/state/checkpoints/)
 - [Production readiness](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/production_ready/)

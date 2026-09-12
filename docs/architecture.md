@@ -11,7 +11,7 @@ tags:
   - project-structure
 ---
 
-# Architecture
+## Architecture
 
 Flos is a Maven reactor organized into top-level technology aggregators. Each technology may contain a reusable semantics module and one or more runnable labs.
 

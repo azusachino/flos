@@ -11,7 +11,7 @@ tags:
     - executable-tutorial
 ---
 
-# Running examples
+## Running examples
 
 Run the repository checks:
 

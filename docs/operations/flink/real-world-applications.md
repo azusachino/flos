@@ -13,11 +13,11 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/learn-flink/overview/
 ---
 
-# Real-world Flink Applications
+## Real-world Flink Applications
 
 Flink is useful when computation must remain continuously stateful while processing unbounded or frequently arriving data. It is not automatically the best answer for every Kafka consumer or periodic report.
 
-## Selection test
+### Selection test
 
 Flink becomes attractive when several are true:
 
@@ -31,7 +31,7 @@ Flink becomes attractive when several are true:
 
 A scheduled SQL query, Kafka Streams application, database materialized view, or ordinary service may be simpler when state and latency requirements are modest.
 
-## Pattern: event-time billing and settlement
+### Pattern: event-time billing and settlement
 
 ```mermaid
 flowchart LR
@@ -61,7 +61,7 @@ Production requirements:
 
 Do not make a window aggregate the sole financial ledger without an audit and correction design.
 
-## Pattern: fraud and risk detection
+### Pattern: fraud and risk detection
 
 Examples:
 
@@ -88,7 +88,7 @@ Operational concerns:
 - explainable alert payload
 - exactly which event caused a decision
 
-## Pattern: operational monitoring and alerting
+### Pattern: operational monitoring and alerting
 
 Examples:
 
@@ -111,7 +111,7 @@ Operational concerns:
 
 If the monitoring backend already performs the required aggregation and alerting, another stateful platform may add little value.
 
-## Pattern: change-data-capture materialization
+### Pattern: change-data-capture materialization
 
 ```mermaid
 flowchart LR
@@ -136,7 +136,7 @@ Operational concerns:
 - re-bootstrap procedure
 - source database retention
 
-## Pattern: stream enrichment
+### Pattern: stream enrichment
 
 Examples:
 
@@ -155,7 +155,7 @@ Choose enrichment mode:
 | Async external lookup | Current external value | Adds dependency latency, rate limits, timeout, and consistency concerns |
 | Pre-enriched producer event | Simplest Flink topology | Duplicates data and shifts correctness to producer |
 
-## Pattern: session and behavior analytics
+### Pattern: session and behavior analytics
 
 Session windows group activity separated by inactivity gaps:
 
@@ -171,7 +171,7 @@ Operational concerns:
 - privacy and retention requirements
 - bot/internal traffic filtering
 
-## Pattern: data quality gateway
+### Pattern: data quality gateway
 
 Flink can continuously validate:
 
@@ -193,7 +193,7 @@ reconciliation evidence
 
 The quarantine stream needs ownership, retention, alerts, and replay tooling. A dead-letter topic without a consumer is delayed data loss.
 
-## Pattern: online features and models
+### Pattern: online features and models
 
 Flink can compute continuously updated features:
 
@@ -213,7 +213,7 @@ Operational concerns:
 - model and feature versioning
 - replay cost
 
-## When not to use Flink
+### When not to use Flink
 
 Prefer a simpler system when:
 
@@ -235,7 +235,7 @@ Decision example:
 | Large stateful joins/windows with event-time disorder | Flink |
 | Authoritative balance transfer | Transactional ledger/database, possibly with Flink as a derived view |
 
-## Adoption path
+### Adoption path
 
 Adopt vertically:
 
@@ -249,7 +249,7 @@ Adopt vertically:
 
 The repository currently covers step 1 and parts of step 2. The operations handbook defines the evidence required for later steps.
 
-## Architecture review template
+### Architecture review template
 
 ```yaml
 application:
@@ -276,7 +276,7 @@ operations:
     reconciliation: required
 ```
 
-## Official references
+### Official references
 
 - [Flink overview](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/learn-flink/overview/)
 - [Flink architecture](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/concepts/flink-architecture/)

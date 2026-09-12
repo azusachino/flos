@@ -13,11 +13,11 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/production_ready/
 ---
 
-# Flink Job Lifecycle SOP
+## Flink Job Lifecycle SOP
 
 This SOP is the normal path for a stateful job. Incident response may shorten the path to protect data or restore service, but emergency actions must still preserve evidence and reconcile external effects.
 
-## Change classification
+### Change classification
 
 Classify the change before deployment:
 
@@ -29,7 +29,7 @@ Classify the change before deployment:
 | Runtime upgrade | Flink version, connector version, Java runtime | Compatibility review and savepoint restore drill |
 | Platform upgrade | Kubernetes Operator, CRD, Helm values | Separate operator procedure; preserve running jobs |
 
-## 1. Prepare the change
+### 1. Prepare the change
 
 Record:
 
@@ -56,7 +56,7 @@ make validate
 
 These prove local semantics, packaging, and documentation. Add connector, restore, and environment-specific tests before production.
 
-## 2. Review topology and state
+### 2. Review topology and state
 
 Compare old and new job graphs:
 
@@ -85,7 +85,7 @@ stateCompatibility:
     restoreEvidence: test-savepoint-2026-07-30
 ```
 
-## 3. Establish the rollback point
+### 3. Establish the rollback point
 
 For a healthy stateful job, use a savepoint when the deployment method requires controlled state transfer:
 
@@ -109,7 +109,7 @@ last completed business window
 
 A savepoint does not reverse writes already emitted after an earlier snapshot. Prefer stop-with-savepoint for one active processing timeline and define sink reconciliation before using a non-stopping snapshot.
 
-## 4. Deploy
+### 4. Deploy
 
 For a Kubernetes Operator application deployment, a production-oriented shape is:
 
@@ -147,7 +147,7 @@ kubectl get flinkdeployment user-fee-report -w
 
 Never paste credentials into the manifest or command history.
 
-## 5. Verify runtime health
+### 5. Verify runtime health
 
 Runtime acceptance:
 
@@ -173,7 +173,7 @@ xh get "$FLINK_REST_URL/jobs/$JOB_ID/vertices"
 
 Do not log bearer tokens or embed them in committed scripts.
 
-## 6. Verify business correctness
+### 6. Verify business correctness
 
 Choose a traceable canary event:
 
@@ -198,7 +198,7 @@ Verify independently:
 
 Remove or clearly label canary data according to the data-retention policy.
 
-## 7. Declare stable
+### 7. Declare stable
 
 Observe for a defined stability window. Compare against the previous revision:
 
@@ -229,7 +229,7 @@ deployment:
         lateRecordsDropped: 0
 ```
 
-## 8. Routine maintenance
+### 8. Routine maintenance
 
 Daily:
 
@@ -263,7 +263,7 @@ Quarterly or after material changes:
 - sink replay/idempotency test
 - RTO measurement
 
-## 9. Roll back
+### 9. Roll back
 
 Rollback triggers:
 
@@ -287,7 +287,7 @@ Procedure:
 
 Do not use `--allowNonRestoredState` merely to make deployment succeed. That flag authorizes state loss and requires an explicit data-correctness decision.
 
-## 10. Retire
+### 10. Retire
 
 Before retirement:
 
@@ -304,7 +304,7 @@ Before retirement:
 
 Retirement is complete when both compute and data ownership are resolved.
 
-## Official references
+### Official references
 
 - [Production readiness checklist](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/ops/production_ready/)
 - [Upgrading applications and Flink](https://nightlies.apache.org/flink/flink-docs-master/docs/ops/upgrading/)

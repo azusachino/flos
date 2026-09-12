@@ -11,7 +11,7 @@ tags:
     - tooling
 ---
 
-# Prerequisites
+## Prerequisites
 
 The shortest setup uses [mise](https://mise.jdx.dev/) to install Java 17, Maven, Python, and uv:
 

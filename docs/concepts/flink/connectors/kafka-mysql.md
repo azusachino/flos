@@ -13,7 +13,7 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/connectors/datastream/kafka/
 ---
 
-# Kafka Source and MySQL Sink
+## Kafka Source and MySQL Sink
 
 Real Flink jobs sit between systems. The `pipeline-lab` contains two connector paths.
 
@@ -44,7 +44,7 @@ Kafka billing-events, 16 partitions
   -> MySQL fee_reports
 ```
 
-## Supporting libraries
+### Supporting libraries
 
 - Spring Framework's environment abstraction maps runtime configuration without coupling the Flink job lifecycle to Spring Boot.
 - Jackson turns Kafka JSON into the shared `PurchaseEvent` record.
@@ -53,7 +53,7 @@ Kafka billing-events, 16 partitions
 
 These utilities stay at the integration boundary. The operators remain plain Flink functions so their tests do not need a Spring context, Kafka, or MySQL.
 
-## Configuration
+### Configuration
 
 The defaults target service names in `environments/flink/compose.yaml`. Override them through:
 

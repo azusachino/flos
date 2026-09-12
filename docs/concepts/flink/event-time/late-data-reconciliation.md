@@ -14,7 +14,7 @@ tags:
 source: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/datastream/operators/windows/
 ---
 
-# Late Data Correction and Reconciliation
+## Late Data Correction and Reconciliation
 
 A watermark crossing a window end does not have to mean “the report can never change.” Flink separates two boundaries:
 
@@ -34,7 +34,7 @@ orders
 
 This is not five minutes of temporary event storage followed by a batch query. It is continuously updated keyed window state. The aggregate stores the compact fee total and count for each `(customerId, window)` until Flink cleans that state.
 
-## The three clocks
+### The three clocks
 
 Keep these values separate:
 
@@ -56,7 +56,7 @@ Keep these values separate:
 
 The timestamp selects `[12:00, 12:05)`. The customer key decides which keyed aggregate owns the event. Kafka partition and offset remain source-placement and recovery coordinates.
 
-## Exact lifecycle of one window
+### Exact lifecycle of one window
 
 For this job:
 
@@ -86,7 +86,7 @@ sequenceDiagram
     W->>L: route event beyond allowed lateness
 ```
 
-### Stage 1: on-time report
+#### Stage 1: on-time report
 
 All 16 Kafka partitions publish an event at `12:06`. With 30 seconds of bounded disorder, the downstream watermark reaches approximately `12:05:30`. The first window fires:
 
@@ -98,7 +98,7 @@ All 16 Kafka partitions publish an event at `12:06`. With 30 seconds of bounded 
 
 The window state is **not** deleted yet because the cleanup boundary is `12:07`.
 
-### Stage 2: accepted late correction
+#### Stage 2: accepted late correction
 
 Partition 0 next publishes sequence 4:
 
@@ -128,7 +128,7 @@ ON DUPLICATE KEY UPDATE
 
 Allowed lateness therefore requires a correction-compatible sink. An append-only sink would contain both the provisional and corrected reports unless it carries a revision/retraction contract.
 
-### Stage 3: cleanup
+#### Stage 3: cleanup
 
 The fixture publishes `12:08` events to all partitions. The watermark advances to approximately `12:07:30`, beyond:
 
@@ -138,7 +138,7 @@ window end 12:05 + allowed lateness 00:02 = cleanup at 12:07
 
 Flink clears the keyed state for the first window. Allowed lateness is state retention, so increasing it increases concurrent state, checkpoint size, and the time during which reports remain provisional.
 
-### Stage 4: event beyond allowed lateness
+#### Stage 4: event beyond allowed lateness
 
 Partition 0 publishes sequence 6 with event time `12:02`. The first-window state no longer exists. `sideOutputLateData` routes the original event to `billing_too_late_events`; it does not modify `fee_reports`.
 
@@ -151,7 +151,7 @@ reports.getSideOutput(TOO_LATE_EVENTS)
 
 In a real billing system, its owner may repair producer timestamps, approve a ledger adjustment, replay into a correction job, or reject the event. The policy must not be “a metric increased, so data is somebody else's problem.”
 
-## Why an audit sink exists
+### Why an audit sink exists
 
 The pipeline idempotently records every deserialized Kafka event in `billing_event_audit`:
 
@@ -169,7 +169,7 @@ The three sink views have different meanings:
 | `fee_reports`             | accepted events represented in window aggregates |
 | `billing_too_late_events` | consumed events excluded after cleanup           |
 
-## Reconciliation equation
+### Reconciliation equation
 
 For one window, the acceptance test checks both money and count:
 
@@ -197,7 +197,7 @@ SELECT
 
 A zero delta proves this controlled fixture balances. It does not prove that an arbitrary producer emitted every intended business event; Kafka and Flink cannot reconcile an event that never reached the source.
 
-## DevOps policy decisions
+### DevOps policy decisions
 
 Before enabling allowed lateness, record:
 
@@ -212,7 +212,7 @@ Before enabling allowed lateness, record:
 
 Do not choose a larger value only to make `numLateRecordsDropped` become zero. That trades visible rejection for later finality and more state.
 
-## Incident workflow
+### Incident workflow
 
 When reconciliation is non-zero:
 
@@ -227,7 +227,7 @@ When reconciliation is non-zero:
 
 Never fix a money delta by directly changing only the aggregate row without preserving an auditable adjustment.
 
-## Run the evidence
+### Run the evidence
 
 ```sh
 make flink-up
@@ -244,7 +244,7 @@ one 9.00 too-late event, reconciliation delta 0.00 / 0 events
 
 The verifier waits for each stage before publishing the next one, so the accepted correction is known to arrive after the first report, and the rejected event is known to arrive after the cleanup watermark.
 
-## Official references
+### Official references
 
 - [Windows and allowed lateness](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/datastream/operators/windows/)
 - [Event-time watermarks](https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/datastream/event-time/generating_watermarks/)
