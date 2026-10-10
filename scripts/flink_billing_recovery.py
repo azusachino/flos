@@ -8,7 +8,6 @@ import subprocess
 import sys
 import time
 import urllib.error
-import urllib.request
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -276,13 +275,11 @@ def main() -> int:
         compose("kill", "taskmanager")
         compose("up", "-d", "taskmanager")
         after_container = taskmanager_container()
-        manifest["failure"].update(
-            {
-                "restoredAt": utc_now(),
-                "containerAfter": after_container,
-                "stateAfter": inspect_container(after_container),
-            }
-        )
+        manifest["failure"].update({
+            "restoredAt": utc_now(),
+            "containerAfter": after_container,
+            "stateAfter": inspect_container(after_container),
+        })
         persist(evidence_path, manifest)
 
         restored, states, restored_payload = wait_for_restored_checkpoint(job_id, completed)
