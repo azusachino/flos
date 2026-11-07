@@ -22,6 +22,8 @@ The repository pins Flink 2.2.1 and Java 17 to match the Flink Kubernetes Operat
 
 The [Checkpoint and Recovery Lab](state/checkpoint-recovery.md) builds on the event-time lesson with an actual completed checkpoint, injected task failure, automatic restart, and restored five-minute window.
 
+The [Chandy-Lamport Barriers and Two-Phase Commit Boundary](state/chandy-lamport-barriers-and-two-phase-commit.md) connects Flink's Asynchronous Barrier Snapshotting (`ABS`) to distributed snapshot theory and contrasts internal state rollback with external `2PC` and idempotent sink contracts.
+
 The [Keyed State TTL and Backend Choice Lab](state/ttl-and-backends.md) teaches the complementary half of state: expiring it on purpose, and proving that logic holds behind either the HashMap or RocksDB state backend.
 
 The [Restart Strategies and the Give-Up Boundary Lab](state/restart-strategies.md) isolates the retry policy itself: how many times a job actually retries before it is declared failed, and whether that safety net exists at all by default.
