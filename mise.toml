@@ -1,5 +1,7 @@
 [tools]
 maven = "3.9.12"
+uv = "0.13"
+java = "corretto-25.0"
 
 [settings]
 lockfile = true
