@@ -26,7 +26,7 @@ The [Flink environment](../flink/index.md) mounts pre-built jars into official u
 
 | File | What to learn from it |
 | --- | --- |
-| [`Dockerfile`](https://github.com/azusachino/flos/blob/main/environments/netty/event-loop/Dockerfile) | Multi-stage build: a full Maven/JDK stage, discarded, feeding a minimal JRE runtime stage |
+| [`Dockerfile`](https://github.com/azusachino/flos/blob/main/environments/netty/event-loop/Dockerfile) | Multi-stage build: a full Maven/JDK stage, discarded, feeding a runtime stage on the workstation shared base with a Java 17 JRE copied in |
 | [`compose.yaml`](https://github.com/azusachino/flos/blob/main/environments/netty/compose.yaml) | Builds and runs the image with a health check, the same Podman Compose tooling already used for Flink |
 | [`netty_deployment_smoke.py`](https://github.com/azusachino/flos/blob/main/scripts/netty_deployment_smoke.py) | Proves the _running container_, not just the jar, actually echoes correctly |
 | [`.dockerignore`](https://github.com/azusachino/flos/blob/main/.dockerignore) | Keeps `vendor/`, `target/`, and `node_modules/` out of the build context |
@@ -40,12 +40,21 @@ COPY pom.xml ./
 COPY modules ./modules
 RUN mvn -pl modules/netty/event-loop-lab -am -DskipTests package
 
-FROM docker.io/library/eclipse-temurin:17-jre
+FROM docker.io/library/eclipse-temurin:17-jre AS jre
+
+FROM azusachino.com/media-base:py3.14-trixie-r2
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH=${JAVA_HOME}/bin:${PATH}
+COPY --from=jre /opt/java/openjdk ${JAVA_HOME}
 ...
 COPY --from=build --chown=flos:flos /workspace/modules/netty/event-loop-lab/target/event-loop-lab.jar app.jar
 ```
 
 The build stage needs the _whole_ reactor's `pom.xml` files, not just the one module being built: Maven reads the root `pom.xml`'s `<modules>` list before it can restrict the actual build to `event-loop-lab` with `-pl`/`-am`, so every declared module — including the unrelated `modules/flink` tree — has to exist in the build context even though only its `pom.xml` files get read. Only the resulting jar crosses into the second `FROM`. The Maven distribution, the JDK compiler, every dependency's full jar — none of it reaches the image that actually runs.
+
+### Runtime base: the workstation shared image
+
+The runtime stage uses `azusachino.com/media-base:py3.14-trixie-r2`, a local-only tag owned by the workstation repository (Python 3.14 on Debian trixie). Build it first in the same container store with `make media-base-build` from the workstation root; a clean machine or CI runner cannot pull it. Debian trixie has no OpenJDK 17 package and the base has no JVM, so the Java 17 JRE that the lab targets is copied from `eclipse-temurin:17-jre`.
 
 ### A base image tag is not automatically multi-arch
 
@@ -55,7 +64,7 @@ The Dockerfile originally targeted `eclipse-temurin:17-jre-alpine` for a small r
 no image found in image index for architecture "arm64", variant "v8", OS "linux"
 ```
 
-`podman manifest inspect docker.io/library/eclipse-temurin:17-jre-alpine` confirms why: that specific tag only publishes an `amd64` variant, despite Eclipse Temurin publishing arm64 images under other tags. The fix here is `amazoncorretto:17-alpine` instead — verified multi-arch (`amd64` and `arm64`) with `podman manifest inspect`, and the same JDK vendor `mise.toml` already pins for local development (`java = "corretto-17"`), so the container runs the identical build a contributor tests against on their own machine rather than a different vendor's equivalent. Corretto does not publish a separate JRE-only tag the way Temurin does — every Corretto image ships the full JDK, compiler included — but Alpine keeps it smaller than a Debian-based full JDK would be, and the health check can still use Alpine's built-in BusyBox `nc`:
+`podman manifest inspect docker.io/library/eclipse-temurin:17-jre-alpine` confirms why: that specific tag only publishes an `amd64` variant, despite Eclipse Temurin publishing arm64 images under other tags. The earlier fix was `amazoncorretto:17-alpine`, which the runtime no longer uses. The current runtime stage copies the Java 17 JRE from `eclipse-temurin:17-jre` onto the Debian shared base. Verify the architectures of the tag you use with `podman manifest inspect` before relying on it. The earlier health check used Alpine's BusyBox `nc`:
 
 ```dockerfile
 HEALTHCHECK --interval=5s --timeout=3s --retries=12 \
@@ -63,6 +72,15 @@ HEALTHCHECK --interval=5s --timeout=3s --retries=12 \
 ```
 
 A base image tag being labeled "Alpine" or "JRE" says nothing about which architectures it actually publishes; `podman manifest inspect` is the only way to know before a teammate's arm64 laptop finds out for you.
+
+The current runtime stage uses the shared Debian base instead of Alpine, and its health check uses the base's Python 3 because the base has no `nc`:
+
+```dockerfile
+HEALTHCHECK --interval=5s --timeout=3s --retries=12 \
+    CMD python3 -c "import socket; socket.create_connection(('localhost', 9000), timeout=2).close()" || exit 1
+```
+
+Podman ignores `HEALTHCHECK` for OCI-format images; the compose file's health check is the one that applies.
 
 ### Running as a real user, not root
 
@@ -99,6 +117,7 @@ What's not proven: multi-container orchestration (this is one service, not sever
 ### Run it
 
 ```sh
+make media-base-build   # workstation root, once per container store
 make netty-up
 make netty-smoke
 make netty-down

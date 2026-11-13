@@ -6,7 +6,7 @@ services:
     ports:
       - "9000:9000"
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
+      test: ["CMD-SHELL", "python3 -c \"import socket; socket.create_connection(('localhost', 9000), timeout=2).close()\" || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 12
