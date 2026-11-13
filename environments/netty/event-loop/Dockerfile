@@ -8,17 +8,24 @@ COPY pom.xml ./
 COPY modules ./modules
 RUN mvn -pl modules/netty/event-loop-lab -am -DskipTests package
 
-# Runtime stage: Amazon Corretto, the same JDK distribution mise.toml pins for local development
-# (java = "corretto-17"), so the container runs the identical vendor build a contributor tests
-# against locally. Corretto does not publish a separate JRE-only image, unlike Eclipse Temurin,
-# but its Alpine tag is genuinely multi-arch (amd64 and arm64) where Temurin's Alpine JRE tag is
-# amd64-only -- smaller than the Debian-based fallback and still runs on Apple Silicon natively.
-FROM docker.io/library/amazoncorretto:17-alpine
-RUN addgroup -S flos && adduser -S flos -G flos
+# Java 17 runtime source: Debian trixie ships no openjdk-17 package (only 21), and the workstation
+# shared base is Python-only. The JRE is copied from Eclipse Temurin's 17 JRE image (glibc-based,
+# multi-arch), so the final image runs the same Java 17 class-file target the lab is compiled for.
+FROM docker.io/library/eclipse-temurin:17-jre AS jre
+
+# Runtime stage: the workstation shared runtime base (Python 3.14 on Debian trixie, tini, curl,
+# certificates, timezone data). It provides no JVM, so the Java 17 JRE is layered on top of it.
+FROM azusachino.com/media-base:py3.14-trixie-r2
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH=${JAVA_HOME}/bin:${PATH}
+COPY --from=jre /opt/java/openjdk ${JAVA_HOME}
+RUN java -version 2>&1 | head -1
+RUN groupadd --system flos && useradd --system --gid flos flos
 USER flos
 WORKDIR /app
 COPY --from=build --chown=flos:flos /workspace/modules/netty/event-loop-lab/target/event-loop-lab.jar app.jar
 EXPOSE 9000
+# The shared base has no netcat; the TCP probe uses its Python 3 interpreter instead.
 HEALTHCHECK --interval=5s --timeout=3s --retries=12 \
-    CMD nc -z localhost 9000 || exit 1
+    CMD python3 -c "import socket; socket.create_connection(('localhost', 9000), timeout=2).close()" || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]
