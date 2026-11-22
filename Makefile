@@ -4,6 +4,7 @@ TITLE ?=
 FLINK_COMPOSE := environments/flink/compose.yaml
 CLICKHOUSE_COMPOSE := environments/clickhouse/compose.yaml
 NETTY_COMPOSE := environments/netty/compose.yaml
+CONTAINER_TOOL ?= podman
 
 .PHONY: setup fmt fmt-check lint test check validate clean docs docs-check topic-new concept-check concept-test flink-event-time flink-state-ttl flink-restart-strategy flink-slot-sharing flink-recovery flink-savepoint-upgrade flink-recovery-package flink-package flink-pipeline-package flink-clickhouse-package clickhouse-up clickhouse-sink-smoke clickhouse-workload clickhouse-cases clickhouse-down flink-up flink-smoke flink-billing-smoke flink-billing-recovery flink-observability-smoke flink-down netty-event-loop netty-framing netty-backpressure netty-lifecycle netty-up netty-smoke netty-down
 
@@ -82,7 +83,7 @@ flink-clickhouse-package:
 	mvn -pl modules/flink/clickhouse-sink-lab -am package
 
 clickhouse-up:
-	podman compose -f "$(CLICKHOUSE_COMPOSE)" up -d
+	$(CONTAINER_TOOL) compose -f "$(CLICKHOUSE_COMPOSE)" up -d
 
 clickhouse-sink-smoke: flink-clickhouse-package clickhouse-up
 	uv run scripts/clickhouse_sink_smoke.py
@@ -94,10 +95,10 @@ clickhouse-cases: clickhouse-up
 	uv run scripts/clickhouse_cases.py
 
 clickhouse-down:
-	podman compose -f "$(CLICKHOUSE_COMPOSE)" down
+	$(CONTAINER_TOOL) compose -f "$(CLICKHOUSE_COMPOSE)" down
 
 flink-up: flink-package flink-pipeline-package
-	podman compose -f "$(FLINK_COMPOSE)" up -d
+	$(CONTAINER_TOOL) compose -f "$(FLINK_COMPOSE)" up -d
 
 flink-smoke:
 	uv run scripts/flink_smoke.py
@@ -112,7 +113,7 @@ flink-observability-smoke: flink-pipeline-package
 	FLINK_OBSERVABILITY_SMOKE=1 uv run scripts/flink_billing_smoke.py
 
 flink-down:
-	podman compose -f "$(FLINK_COMPOSE)" down
+	$(CONTAINER_TOOL) compose -f "$(FLINK_COMPOSE)" down
 
 netty-event-loop:
 	mvn -pl modules/netty/event-loop-lab -am package
@@ -131,10 +132,10 @@ netty-lifecycle:
 	java -jar modules/netty/lifecycle-lab/target/lifecycle-lab.jar
 
 netty-up:
-	podman compose -f "$(NETTY_COMPOSE)" up -d --build
+	$(CONTAINER_TOOL) compose -f "$(NETTY_COMPOSE)" up -d --build
 
 netty-smoke:
 	uv run scripts/netty_deployment_smoke.py
 
 netty-down:
-	podman compose -f "$(NETTY_COMPOSE)" down
+	$(CONTAINER_TOOL) compose -f "$(NETTY_COMPOSE)" down
