@@ -1,24 +1,36 @@
 name: CI
 
+# Pull requests and manual runs only: a merge to main re-ran the check its pull
+# request had just passed. Markdown and docs stay in: make validate checks them.
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: jdx/mise-action@v5
         with:
           install: true
           cache: true
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.cache/uv
+          key: flos-${{ runner.os }}-${{ hashFiles('**/pom.xml', 'uv.lock') }}
+          restore-keys: flos-${{ runner.os }}-
       - run: make setup
       - run: make validate
